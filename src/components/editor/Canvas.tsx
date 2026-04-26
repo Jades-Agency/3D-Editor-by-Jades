@@ -1,72 +1,61 @@
 "use client";
 
-import {
-  Canvas as R3FCanvas,
-  useFrame,
-  useThree,
-  type ThreeEvent,
-} from "@react-three/fiber";
+import { Canvas as R3FCanvas, type ThreeEvent } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
-  ContactShadows,
   PerspectiveCamera,
-  useGLTF,
 } from "@react-three/drei";
-import {
-  EffectComposer,
-  Bloom,
-  Noise,
-  ToneMapping,
-} from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Noise } from "@react-three/postprocessing";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useStore } from "@/lib/store";
 import {
   applyMaterialOverrides,
-  cloneSceneWithMaterialSnapshot,
-  disposeSceneMaterials,
+  prepareSceneAndSnapshot,
 } from "@/lib/materialRegistry";
 import * as THREE from "three";
 
 const CANVAS_GL_CONFIG = Object.freeze({
   antialias: true,
-  alpha: false,
-  powerPreference: "high-performance" as WebGLPowerPreference,
+  alpha: true,
+  powerPreference: "default" as WebGLPowerPreference,
+  stencil: false,
+  depth: true,
 });
 
-function Model({ url }: { url: string }) {
-  const isValidUrl =
-    url &&
-    (url.startsWith("/") || url.startsWith("http") || url.startsWith("blob:"));
+const PLACEHOLDER_MATERIAL = Object.freeze({
+  color: "#ffffff",
+  roughness: 0.5,
+  metalness: 0,
+  emissive: "#000000",
+  emissiveIntensity: 0,
+  opacity: 1,
+  transparent: false,
+  side: THREE.FrontSide,
+  wireframe: false,
+});
 
-  if (!isValidUrl) {
-    return <PlaceholderModel />;
-  }
-
-  return <LoadedModel url={url} />;
-}
-
-function LoadedModel({ url }: { url: string }) {
-  const {
-    transform,
-    materials,
-    animation,
-    setMaterialSnapshot,
-    clearMaterialSnapshot,
-    setSelectedMaterialId,
-    setSelectedMeshName,
-  } = useStore();
+function Model() {
+  const localModel = useStore((state) => state.localModel);
+  const transform = useStore((state) => state.transform);
+  const materials = useStore((state) => state.materials);
+  const animation = useStore((state) => state.animation);
+  const setMaterialSnapshot = useStore((state) => state.setMaterialSnapshot);
+  const setSelectedMaterialId = useStore(
+    (state) => state.setSelectedMaterialId,
+  );
+  const setSelectedMeshName = useStore((state) => state.setSelectedMeshName);
   const groupRef = useRef<THREE.Group>(null);
-  const gltf = useGLTF(url);
 
-  const sceneAsset = useMemo(() => {
-    if (!gltf) {
-      return null;
-    }
+  // Initialize materials once per model
+  useEffect(() => {
+    if (!localModel) return;
 
-    return cloneSceneWithMaterialSnapshot(gltf.scene);
-  }, [gltf]);
+    const snapshot = prepareSceneAndSnapshot(localModel);
+    setMaterialSnapshot(snapshot);
+  }, [localModel, setMaterialSnapshot]);
 
+  // Sync transform
   useEffect(() => {
     if (groupRef.current) {
       groupRef.current.scale.setScalar(transform.scale);
@@ -75,42 +64,30 @@ function LoadedModel({ url }: { url: string }) {
     }
   }, [transform]);
 
+  // Apply material overrides directly to the model
+  const materialsKey = useMemo(
+    () =>
+      materials
+        .map(
+          (m) =>
+            m.id +
+            m.color +
+            m.roughness +
+            m.metalness +
+            m.emissive +
+            m.emissiveIntensity,
+        )
+        .join(),
+    [materials],
+  );
+
   useEffect(() => {
-    if (!sceneAsset) {
-      clearMaterialSnapshot();
+    if (!localModel || materials.length === 0) {
       return;
     }
 
-    setMaterialSnapshot(sceneAsset.snapshot);
-
-    return () => {
-      disposeSceneMaterials(sceneAsset.scene);
-      clearMaterialSnapshot();
-    };
-  }, [sceneAsset, setMaterialSnapshot, clearMaterialSnapshot]);
-
-  useEffect(() => {
-    if (!sceneAsset) {
-      return;
-    }
-
-    applyMaterialOverrides(sceneAsset.scene, materials);
-  }, [sceneAsset, materials]);
-
-  useEffect(() => {
-    if (!groupRef.current) return;
-    let frameId = 0;
-    if (animation.autoRotate) {
-      const animate = () => {
-        if (groupRef.current) {
-          groupRef.current.rotation.y += animation.autoRotateSpeed * 0.01;
-        }
-        frameId = requestAnimationFrame(animate);
-      };
-      animate();
-    }
-    return () => cancelAnimationFrame(frameId);
-  }, [animation.autoRotate, animation.autoRotateSpeed]);
+    applyMaterialOverrides(localModel, materials);
+  }, [localModel, materialsKey]);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -118,35 +95,30 @@ function LoadedModel({ url }: { url: string }) {
     const objectName = e.object?.name || e.object?.uuid || null;
     setSelectedMeshName(objectName);
 
-    const hitMaterial = e.object?.material;
-    const nextMaterial = Array.isArray(hitMaterial) ? hitMaterial[0] : hitMaterial;
+    const hitMaterial = (e.object as THREE.Mesh)?.material;
+    const nextMaterial = Array.isArray(hitMaterial)
+      ? hitMaterial[0]
+      : hitMaterial;
 
     if (nextMaterial instanceof THREE.Material) {
       setSelectedMaterialId(nextMaterial.uuid);
     }
   };
 
-  if (sceneAsset) {
-    return (
-      <group ref={groupRef} onClick={handleClick}>
-        <primitive object={sceneAsset.scene} />
-      </group>
-    );
+  if (!localModel) {
+    return <PlaceholderModel />;
   }
 
-  return <PlaceholderModel />;
+  return (
+    <group ref={groupRef} onClick={handleClick}>
+      <primitive object={localModel} />
+    </group>
+  );
 }
 
 function PlaceholderModel() {
-  const { transform, meshConfig, animation, setSelectedMeshName } = useStore();
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame(() => {
-    if (!meshRef.current) return;
-    if (animation.autoRotate) {
-      meshRef.current.rotation.y += animation.autoRotateSpeed * 0.01;
-    }
-  });
+  const transform = useStore((state) => state.transform);
+  const setSelectedMeshName = useStore((state) => state.setSelectedMeshName);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -155,36 +127,19 @@ function PlaceholderModel() {
 
   return (
     <mesh
-      ref={meshRef}
       position={transform.position}
       rotation={transform.rotation}
       scale={transform.scale}
       onClick={handleClick}
     >
       <boxGeometry args={[1, 1, 1]} />
-      <meshPhysicalMaterial
-        color={meshConfig.color}
-        roughness={meshConfig.roughness}
-        metalness={meshConfig.metalness}
-        emissive={meshConfig.emissive}
-        emissiveIntensity={meshConfig.emissiveIntensity}
-        opacity={meshConfig.opacity}
-        transparent={meshConfig.transparent}
-        side={
-          meshConfig.side === "back"
-            ? THREE.BackSide
-            : meshConfig.side === "double"
-              ? THREE.DoubleSide
-              : THREE.FrontSide
-        }
-        wireframe={meshConfig.wireframe}
-      />
+      <meshPhysicalMaterial {...PLACEHOLDER_MATERIAL} />
     </mesh>
   );
 }
 
 function Lights() {
-  const { lights } = useStore();
+  const lights = useStore((state) => state.lights);
 
   return (
     <>
@@ -228,18 +183,8 @@ function Lights() {
 }
 
 function PostProcessing() {
-  const { postProcessing } = useStore();
-  const { bloom, noise, toneMapping } = postProcessing;
-  const gl = useThree((state) => state.gl);
-
-  // The postprocessing composer expects a live WebGL context. During
-  // remounts or hot state transitions the renderer can briefly exist
-  // before its context attributes are available.
-  const contextAttributes = gl.getContext()?.getContextAttributes?.();
-
-  if (!contextAttributes) {
-    return null;
-  }
+  const postProcessing = useStore((state) => state.postProcessing);
+  const { bloom, noise } = postProcessing;
 
   return (
     <EffectComposer enableNormalPass={false}>
@@ -251,17 +196,63 @@ function PostProcessing() {
         mipmapBlur
       />
       <Noise opacity={noise.opacity} />
-      <ToneMapping exposure={toneMapping.exposure} />
     </EffectComposer>
   );
 }
 
 export default function Canvas() {
-  const { camera, environment, modelUrl, blobUrl, externalUrl } = useStore();
-  const modelSource = blobUrl || externalUrl || modelUrl;
+  const camera = useStore((state) => state.camera);
+  const environment = useStore((state) => state.environment);
+  const localModel = useStore((state) => state.localModel);
+  const animation = useStore((state) => state.animation);
+
+  useEffect(() => {
+    const restore = async () => {
+      // Give the renderer a moment to settle
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const { loadFromCache } = await import("@/lib/modelLoader");
+      await loadFromCache();
+    };
+    restore();
+  }, []);
 
   return (
-    <R3FCanvas shadows dpr={[1, 2]} gl={CANVAS_GL_CONFIG}>
+    <R3FCanvas
+      shadows
+      dpr={[1, 2]}
+      gl={CANVAS_GL_CONFIG}
+      onCreated={({ gl }) => {
+        gl.toneMapping = THREE.LinearToneMapping;
+        gl.toneMappingExposure = 1.0;
+        gl.outputColorSpace = THREE.SRGBColorSpace;
+
+        const canvas = gl.domElement;
+        const handleContextLost = (e: Event) => {
+          e.preventDefault();
+          console.warn("WebGL Context Lost. Attempting to recover...");
+        };
+        const handleContextRestored = async () => {
+          console.info("WebGL Context Restored. Reloading model...");
+          const { loadFromCache } = await import("@/lib/modelLoader");
+          await loadFromCache();
+        };
+
+        canvas.addEventListener("webglcontextlost", handleContextLost, false);
+        canvas.addEventListener(
+          "webglcontextrestored",
+          handleContextRestored,
+          false,
+        );
+
+        return () => {
+          canvas.removeEventListener("webglcontextlost", handleContextLost);
+          canvas.removeEventListener(
+            "webglcontextrestored",
+            handleContextRestored,
+          );
+        };
+      }}
+    >
       <PerspectiveCamera
         makeDefault
         position={camera.position}
@@ -271,20 +262,23 @@ export default function Canvas() {
       <Lights />
 
       <Suspense fallback={<PlaceholderModel />}>
-        {modelSource ? <Model url={modelSource} /> : <PlaceholderModel />}
+        {localModel ? <Model /> : <PlaceholderModel />}
       </Suspense>
 
-      <Environment preset={environment} />
+      <Environment preset={environment} background={false} />
 
-      <ContactShadows
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -1.2, 0]}
-        opacity={0.4}
-        scale={10}
-        blur={2.5}
-        far={4.5}
-      />
+        receiveShadow
+      >
+        <planeGeometry args={[20, 20]} />
+        <shadowMaterial transparent opacity={0.3} />
+      </mesh>
 
       <OrbitControls
+        autoRotate={animation.autoRotate}
+        autoRotateSpeed={animation.autoRotateSpeed}
         enablePan
         enableZoom
         makeDefault

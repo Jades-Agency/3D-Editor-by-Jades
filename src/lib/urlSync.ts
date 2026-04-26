@@ -1,14 +1,10 @@
 "use client";
 
-import { useStore } from "./store";
+import { useStore, type EnvironmentPreset } from "./store";
 
 export const serializeStateToUrl = (): string => {
   const store = useStore.getState();
   const params = new URLSearchParams();
-
-  if (store.externalUrl) {
-    params.set("url", store.externalUrl);
-  }
 
   if (store.environment !== "city") {
     params.set("env", store.environment);
@@ -26,6 +22,10 @@ export const serializeStateToUrl = (): string => {
     params.set("bloom", store.postProcessing.bloom.intensity.toString());
   }
 
+  if (store.postProcessing.noise.opacity !== 0.05) {
+    params.set("noise", store.postProcessing.noise.opacity.toString());
+  }
+
   const url = new URL(window.location.href);
   url.search = params.toString();
   return url.toString();
@@ -40,28 +40,9 @@ export const loadStateFromUrl = () => {
 
   const params = new URLSearchParams(window.location.search);
 
-  const url = params.get("url");
-  if (url) {
-    useStore.getState().setExternalUrl(url);
-  }
-
   const env = params.get("env");
   if (env) {
-    useStore
-      .getState()
-      .setEnvironment(
-        env as
-          | "city"
-          | "sunset"
-          | "dawn"
-          | "night"
-          | "warehouse"
-          | "forest"
-          | "apartment"
-          | "studio"
-          | "lobby"
-          | "park",
-      );
+    useStore.getState().setEnvironment(env as EnvironmentPreset);
   }
 
   const scale = params.get("scale");
@@ -81,6 +62,13 @@ export const loadStateFromUrl = () => {
         ...useStore.getState().postProcessing.bloom,
         intensity: parseFloat(bloom),
       },
+    });
+  }
+
+  const noise = params.get("noise");
+  if (noise) {
+    useStore.getState().setPostProcessing({
+      noise: { opacity: parseFloat(noise) },
     });
   }
 };

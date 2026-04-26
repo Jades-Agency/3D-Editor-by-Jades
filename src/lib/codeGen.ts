@@ -38,7 +38,7 @@ const generateCode = (): string => {
   const env = store.environment;
 
   return `import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Environment, PerspectiveCamera } from '@react-three/drei';
 import { EffectComposer, Bloom, Noise, ToneMapping } from '@react-three/postprocessing';
 
 export default function ModelViewer() {
@@ -54,8 +54,7 @@ export default function ModelViewer() {
         <boxGeometry args={[1, 1, 1]} />
         <meshPhysicalMaterial color="#ffffff" roughness={0.1} metalness={0.2} />
       </mesh>
-      
-      {/* Environment */}
+
       <Environment preset="${env}" />
       
       <ContactShadows

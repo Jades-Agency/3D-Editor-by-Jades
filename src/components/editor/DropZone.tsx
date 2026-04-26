@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { loadFile, loadExternalUrl } from "@/lib/modelLoader";
-import { Upload, Link, Loader2 } from "lucide-react";
+import { loadFile } from "@/lib/modelLoader";
+import { Upload, Loader2 } from "lucide-react";
 
 export default function DropZone() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [urlInput, setUrlInput] = useState("");
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -23,46 +21,44 @@ export default function DropZone() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  const handleModelFile = useCallback(async (file: File) => {
+    if (!file.name.toLowerCase().endsWith(".glb")) {
+      return;
+    }
 
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.name.toLowerCase().endsWith(".glb")) {
-        setIsLoading(true);
-        await loadFile(file);
-        setIsLoading(false);
-      }
+    setIsLoading(true);
+    try {
+      await loadFile(file);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (file) {
+        await handleModelFile(file);
+      }
+    },
+    [handleModelFile],
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIsLoading(true);
-      await loadFile(file);
-      setIsLoading(false);
+      await handleModelFile(file);
     }
-  };
 
-  const handleUrlSubmit = async () => {
-    if (urlInput.trim()) {
-      setIsLoading(true);
-      loadExternalUrl(urlInput.trim());
-      setIsLoading(false);
-      setShowUrlInput(false);
-      setUrlInput("");
-    }
+    e.target.value = "";
   };
 
   return (
-    <div
-      className="w-full h-full flex flex-col items-center justify-center"
-      style={{ background: "var(--background)" }}
-    >
+    <div className="w-full h-full flex flex-col items-center justify-center">
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -85,7 +81,7 @@ export default function DropZone() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb"
+          accept=".glb,model/gltf-binary"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -110,58 +106,11 @@ export default function DropZone() {
               Drop .glb file here
             </p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              or click to browse
+              or click to browse from your computer
             </p>
           </>
         )}
       </div>
-
-      {showUrlInput ? (
-        <div className="mt-8 flex gap-2">
-          <input
-            type="text"
-            placeholder="https://example.com/model.glb"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleUrlSubmit()}
-            className="w-72"
-            autoFocus
-          />
-          <button
-            onClick={handleUrlSubmit}
-            disabled={!urlInput.trim() || isLoading}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            style={{
-              background: "var(--primary)",
-              color: "white",
-            }}
-          >
-            Load
-          </button>
-          <button
-            onClick={() => setShowUrlInput(false)}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{
-              background: "var(--panel-bg)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowUrlInput(true)}
-          className="mt-8 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{
-            background: "var(--panel-bg)",
-            color: "var(--text-secondary)",
-          }}
-        >
-          <Link className="w-4 h-4" />
-          Or paste URL
-        </button>
-      )}
     </div>
   );
 }

@@ -1,65 +1,93 @@
 "use client";
 
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from "three";
 import { useStore } from "./store";
 
-let currentBlobUrl: string | null = null;
+const TEXTURE_PROPS = [
+  "map",
+  "alphaMap",
+  "aoMap",
+  "bumpMap",
+  "clearcoatMap",
+  "clearcoatNormalMap",
+  "clearcoatRoughnessMap",
+  "displacementMap",
+  "emissiveMap",
+  "envMap",
+  "iridescenceMap",
+  "iridescenceThicknessMap",
+  "lightMap",
+  "metalnessMap",
+  "normalMap",
+  "roughnessMap",
+  "sheenColorMap",
+  "sheenRoughnessMap",
+  "specularColorMap",
+  "specularIntensityMap",
+  "thicknessMap",
+  "transmissionMap",
+  "anisotropyMap",
+] as const;
 
-export const loadFile = (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    if (currentBlobUrl) {
-      URL.revokeObjectURL(currentBlobUrl);
-    }
+import { disposeScene } from "./materialRegistry";
 
-    const blobUrl = URL.createObjectURL(file);
-    currentBlobUrl = blobUrl;
+let currentLocalModel: THREE.Group<THREE.Object3DEventMap> | null = null;
 
-    useStore.getState().setBlobUrl(blobUrl);
-    useStore.getState().setModelUrl(null);
-    useStore.getState().setExternalUrl(null);
-    useStore.getState().setSelectedMeshName(null);
-    useStore.getState().setSelectedMaterialId(null);
-    useStore.getState().clearMaterialSnapshot();
-
-    resolve(blobUrl);
-  });
-};
-
-export const loadExternalUrl = (url: string): void => {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl);
-    currentBlobUrl = null;
-  }
-
-  useStore.getState().setExternalUrl(url);
-  useStore.getState().setModelUrl(null);
-  useStore.getState().setBlobUrl(null);
-  useStore.getState().setSelectedMeshName(null);
-  useStore.getState().setSelectedMaterialId(null);
-  useStore.getState().clearMaterialSnapshot();
-};
-
-export const loadSampleModel = (path: string): void => {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl);
-    currentBlobUrl = null;
-  }
-
-  useStore.getState().setModelUrl(path);
-  useStore.getState().setBlobUrl(null);
-  useStore.getState().setExternalUrl(null);
-  useStore.getState().setSelectedMeshName(null);
-  useStore.getState().setSelectedMaterialId(null);
-  useStore.getState().clearMaterialSnapshot();
-};
-
-export const cleanup = () => {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl);
-    currentBlobUrl = null;
-  }
-};
-
-export const getModelUrl = (): string | null => {
+const resetModelState = () => {
   const store = useStore.getState();
-  return store.blobUrl || store.externalUrl || store.modelUrl;
+  store.setSelectedMeshName(null);
+  store.setSelectedMaterialId(null);
+  store.clearMaterialSnapshot();
+};
+
+export const loadFromArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
+  const loader = new GLTFLoader();
+  const gltf = await loader.parseAsync(arrayBuffer, "");
+
+  if (currentLocalModel) {
+    disposeScene(currentLocalModel);
+  }
+
+  currentLocalModel = gltf.scene;
+
+  resetModelState();
+  useStore.getState().setLocalModel(gltf.scene);
+};
+
+export const loadFile = async (file: File): Promise<void> => {
+  const { cacheModelFile } = await import("./modelCache");
+  const arrayBuffer = await file.arrayBuffer();
+  
+  await cacheModelFile(new File([arrayBuffer], file.name));
+  await loadFromArrayBuffer(arrayBuffer.slice(0));
+};
+
+export const loadFromCache = async (): Promise<boolean> => {
+  const { getCachedModel } = await import("./modelCache");
+  const cached = await getCachedModel();
+  
+  if (cached) {
+    try {
+      await loadFromArrayBuffer(cached.arrayBuffer);
+      return true;
+    } catch (error) {
+      console.error("Failed to load model from cache:", error);
+      return false;
+    }
+  }
+  return false;
+};
+
+export const cleanup = async () => {
+  if (currentLocalModel) {
+    disposeScene(currentLocalModel);
+    currentLocalModel = null;
+  }
+
+  resetModelState();
+  useStore.getState().setLocalModel(null);
+  
+  const { clearCachedModel } = await import("./modelCache");
+  await clearCachedModel();
 };
