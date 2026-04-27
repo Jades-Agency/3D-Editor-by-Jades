@@ -36,12 +36,34 @@ const generateCode = (): string => {
   const { position: camPos, fov } = store.camera;
   const { bloom, noise, toneMapping } = store.postProcessing;
   const env = store.environment;
+  const hasModel = store.localModel !== null;
+
+  const modelInstructions = hasModel
+    ? `
+// === INSTRUCTIONS ===
+// 1. Place your model file in the public folder (e.g., public/model.glb)
+// 2. Update the path below to match your model filename
+`
+    : "";
+
+  const modelImport = hasModel
+    ? `\nimport { useGLTF } from '@react-three/drei';`
+    : "";
+
+  const modelComponent = hasModel
+    ? `
+function Model() {
+  const { scene } = useGLTF('/model.glb');
+  return <primitive object={scene} />;
+}`
+    : "";
 
   return `import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, PerspectiveCamera } from '@react-three/drei';
-import { EffectComposer, Bloom, Noise, ToneMapping } from '@react-three/postprocessing';
-
+import { EffectComposer, Bloom, Noise, ToneMapping } from '@react-three/postprocessing';${modelImport}
+${modelInstructions}
 export default function ModelViewer() {
+${modelComponent}
   return (
     <Canvas shadows dpr={[1, 2]} gl={{ antialias: false }}>
       <PerspectiveCamera makeDefault position={${JSON.stringify(camPos)}} fov={${fov}} />
@@ -50,10 +72,14 @@ export default function ModelViewer() {
       ${lights}
       
       {/* Model */}
-      <mesh position={${JSON.stringify(position)}} rotation={${JSON.stringify(rotation)}} scale={${scale}}>
+      ${
+        hasModel
+          ? `<Model />`
+          : `<mesh position={${JSON.stringify(position)}} rotation={${JSON.stringify(rotation)}} scale={${scale}}>
         <boxGeometry args={[1, 1, 1]} />
         <meshPhysicalMaterial color="#ffffff" roughness={0.1} metalness={0.2} />
-      </mesh>
+      </mesh>`
+      }
 
       <Environment preset="${env}" />
       
