@@ -56,6 +56,15 @@ export interface MaterialOverride {
   sheenColor: string;
   defaultSheenRoughness: number;
   sheenRoughness: number;
+  // Physical Extended
+  defaultDispersion: number;
+  dispersion: number;
+  defaultIridescence: number;
+  iridescence: number;
+  defaultIridescenceIOR: number;
+  iridescenceIOR: number;
+  defaultAnisotropy: number;
+  anisotropy: number;
   // Common
   defaultOpacity: number;
   opacity: number;

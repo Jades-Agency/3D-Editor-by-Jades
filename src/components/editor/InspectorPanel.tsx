@@ -70,6 +70,10 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
       sheen: selectedMaterial.defaultSheen,
       sheenColor: selectedMaterial.defaultSheenColor,
       sheenRoughness: selectedMaterial.defaultSheenRoughness,
+      dispersion: selectedMaterial.defaultDispersion,
+      iridescence: selectedMaterial.defaultIridescence,
+      iridescenceIOR: selectedMaterial.defaultIridescenceIOR,
+      anisotropy: selectedMaterial.defaultAnisotropy,
       opacity: selectedMaterial.defaultOpacity,
       transparent: selectedMaterial.defaultTransparent,
       side: selectedMaterial.defaultSide,
@@ -168,483 +172,584 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
           </div>
 
           {selectedMaterial ? (
-            <div className="space-y-3">
-              <div
-                className="rounded-lg p-2 text-xs truncate"
-                style={{
-                  background: "var(--input-bg)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {selectedMaterial.name}
+            <div className="space-y-2">
+              {/* Surface */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Color
+                </span>
+                <input
+                  type="color"
+                  value={selectedMaterial.color}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      color: e.target.value,
+                    })
+                  }
+                  className="w-8 h-6"
+                />
               </div>
-              {/* Surface Section */}
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold opacity-50">
-                  Surface
-                </p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Color
-                  </span>
-                  <input
-                    type="color"
-                    value={selectedMaterial.color}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        color: e.target.value,
-                      })
-                    }
-                    className="w-8 h-6"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Roughness
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.roughness}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        roughness: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.roughness.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Metalness
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.metalness}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        metalness: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.metalness.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Env Map
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={5}
-                    step={0.1}
-                    value={selectedMaterial.envMapIntensity}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        envMapIntensity: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.envMapIntensity.toFixed(1)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Roughness
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.roughness}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      roughness: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.roughness.toFixed(2)}
+                </span>
               </div>
-
-              {/* Emission Section */}
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold opacity-50">
-                  Emission
-                </p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Emissive
-                  </span>
-                  <input
-                    type="color"
-                    value={selectedMaterial.emissive}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        emissive: e.target.value,
-                      })
-                    }
-                    className="w-8 h-6"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Intensity
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={20}
-                    step={0.1}
-                    value={selectedMaterial.emissiveIntensity}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        emissiveIntensity: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.emissiveIntensity.toFixed(1)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Metalness
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.metalness}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      metalness: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.metalness.toFixed(2)}
+                </span>
               </div>
-              {/* Physical Props Section */}
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold opacity-50">
-                  Physical Props
-                </p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    IOR
-                  </span>
-                  <input
-                    type="range"
-                    min={1}
-                    max={2.333}
-                    step={0.01}
-                    value={selectedMaterial.ior}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        ior: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.ior.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Reflectivity
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.reflectivity}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        reflectivity: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.reflectivity.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Transm.
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.transmission}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        transmission: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.transmission.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Thickness
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    value={selectedMaterial.thickness}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        thickness: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.thickness.toFixed(1)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Clearcoat
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.clearcoat}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        clearcoat: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.clearcoat.toFixed(2)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Env Map
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  value={selectedMaterial.envMapIntensity}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      envMapIntensity: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.envMapIntensity.toFixed(1)}
+                </span>
               </div>
-
-              {/* Sheen Section */}
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold opacity-50">
+              {/* Emission */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Emissive
+                </span>
+                <input
+                  type="color"
+                  value={selectedMaterial.emissive}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      emissive: e.target.value,
+                    })
+                  }
+                  className="w-8 h-6"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Emissive Int.
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  value={selectedMaterial.emissiveIntensity}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      emissiveIntensity: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.emissiveIntensity.toFixed(1)}
+                </span>
+              </div>
+              {/* Optical */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  IOR
+                </span>
+                <input
+                  type="range"
+                  min={1}
+                  max={2.333}
+                  step={0.01}
+                  value={selectedMaterial.ior}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      ior: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.ior.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Reflectivity
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.reflectivity}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      reflectivity: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.reflectivity.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Transmission
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.transmission}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      transmission: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.transmission.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Thickness
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  value={selectedMaterial.thickness}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      thickness: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.thickness.toFixed(1)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Dispersion
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.dispersion}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      dispersion: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.dispersion.toFixed(2)}
+                </span>
+              </div>
+              {/* Clearcoat */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Clearcoat
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.clearcoat}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      clearcoat: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.clearcoat.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Clearcoat Rough.
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.clearcoatRoughness}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      clearcoatRoughness: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.clearcoatRoughness.toFixed(2)}
+                </span>
+              </div>
+              {/* Iridescence */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Iridescence
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.iridescence}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      iridescence: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.iridescence.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Iridescence IOR
+                </span>
+                <input
+                  type="range"
+                  min={1}
+                  max={2.333}
+                  step={0.01}
+                  value={selectedMaterial.iridescenceIOR}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      iridescenceIOR: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.iridescenceIOR.toFixed(2)}
+                </span>
+              </div>
+              {/* Anisotropy */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Anisotropy
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.anisotropy}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      anisotropy: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.anisotropy.toFixed(2)}
+                </span>
+              </div>
+              {/* Sheen */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Sheen Color
+                </span>
+                <input
+                  type="color"
+                  value={selectedMaterial.sheenColor}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      sheenColor: e.target.value,
+                    })
+                  }
+                  className="w-8 h-6"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   Sheen
-                </p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Color
-                  </span>
-                  <input
-                    type="color"
-                    value={selectedMaterial.sheenColor}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        sheenColor: e.target.value,
-                      })
-                    }
-                    className="w-8 h-6"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Intensity
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.sheen}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        sheen: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.sheen.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Roughness
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.sheenRoughness}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        sheenRoughness: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.sheenRoughness.toFixed(2)}
-                  </span>
-                </div>
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.sheen}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      sheen: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.sheen.toFixed(2)}
+                </span>
               </div>
-
-              {/* Utilities Section */}
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold opacity-50">
-                  Utilities
-                </p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Opacity
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedMaterial.opacity}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        opacity: parseFloat(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span
-                    className="w-8 text-xs text-right"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {selectedMaterial.opacity.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Transparent
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={selectedMaterial.transparent}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        transparent: e.target.checked,
-                      })
-                    }
-                    className="w-3 h-3"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs w-20"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Side
-                  </span>
-                  <select
-                    value={selectedMaterial.side}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        side: e.target.value as "front" | "back" | "double",
-                      })
-                    }
-                    className="flex-1 text-xs"
-                  >
-                    <option value="front">Front</option>
-                    <option value="back">Back</option>
-                    <option value="double">Double</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Wireframe
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={selectedMaterial.wireframe}
-                    onChange={(e) =>
-                      updateMaterial(selectedMaterial.id, {
-                        wireframe: e.target.checked,
-                      })
-                    }
-                    className="w-3 h-3"
-                  />
-                </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Sheen Rough.
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.sheenRoughness}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      sheenRoughness: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.sheenRoughness.toFixed(2)}
+                </span>
+              </div>
+              {/* Rendering */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Opacity
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedMaterial.opacity}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      opacity: parseFloat(e.target.value),
+                    })
+                  }
+                  className="flex-1"
+                />
+                <span
+                  className="w-8 text-xs text-right"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {selectedMaterial.opacity.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Transparent
+                </span>
+                <input
+                  type="checkbox"
+                  checked={selectedMaterial.transparent}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      transparent: e.target.checked,
+                    })
+                  }
+                  className="w-3 h-3"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs w-20"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Side
+                </span>
+                <select
+                  value={selectedMaterial.side}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      side: e.target.value as "front" | "back" | "double",
+                    })
+                  }
+                  className="flex-1 text-xs"
+                >
+                  <option value="front">Front</option>
+                  <option value="back">Back</option>
+                  <option value="double">Double</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Wireframe
+                </span>
+                <input
+                  type="checkbox"
+                  checked={selectedMaterial.wireframe}
+                  onChange={(e) =>
+                    updateMaterial(selectedMaterial.id, {
+                      wireframe: e.target.checked,
+                    })
+                  }
+                  className="w-3 h-3"
+                />
               </div>
               <button
                 onClick={resetSelectedMaterial}

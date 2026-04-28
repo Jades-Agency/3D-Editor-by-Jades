@@ -53,6 +53,12 @@ const buildMaterialRecord = (
   const sheenRoughness =
     typeof std.sheenRoughness === "number" ? std.sheenRoughness : 0;
 
+  const dispersion = typeof std.dispersion === "number" ? std.dispersion : 0;
+  const iridescence = typeof std.iridescence === "number" ? std.iridescence : 0;
+  const iridescenceIOR =
+    typeof std.iridescenceIOR === "number" ? std.iridescenceIOR : 1.3;
+  const anisotropy = typeof std.anisotropy === "number" ? std.anisotropy : 0;
+
   const opacity = typeof material.opacity === "number" ? material.opacity : 1;
   const transparent = Boolean(material.transparent);
   const side = SIDE_BY_VALUE[material.side] ?? "front";
@@ -100,6 +106,14 @@ const buildMaterialRecord = (
     sheenColor,
     defaultSheenRoughness: sheenRoughness,
     sheenRoughness,
+    defaultDispersion: dispersion,
+    dispersion,
+    defaultIridescence: iridescence,
+    iridescence,
+    defaultIridescenceIOR: iridescenceIOR,
+    iridescenceIOR,
+    defaultAnisotropy: anisotropy,
+    anisotropy,
     // Common
     defaultOpacity: opacity,
     opacity,
@@ -294,6 +308,34 @@ export const applyMaterialOverrides = (
         typeof (material as any).sheenRoughness === "number"
       ) {
         (material as any).sheenRoughness = override.sheenRoughness;
+      }
+
+      if (
+        "dispersion" in material &&
+        typeof (material as any).dispersion === "number"
+      ) {
+        (material as any).dispersion = override.dispersion;
+      }
+
+      if (
+        "iridescence" in material &&
+        typeof (material as any).iridescence === "number"
+      ) {
+        (material as any).iridescence = override.iridescence;
+      }
+
+      if (
+        "iridescenceIOR" in material &&
+        typeof (material as any).iridescenceIOR === "number"
+      ) {
+        (material as any).iridescenceIOR = override.iridescenceIOR;
+      }
+
+      if (
+        "anisotropy" in material &&
+        typeof (material as any).anisotropy === "number"
+      ) {
+        (material as any).anisotropy = override.anisotropy;
       }
 
       material.opacity = override.opacity;
