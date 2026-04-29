@@ -4,32 +4,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { useStore } from "./store";
 
-const TEXTURE_PROPS = [
-  "map",
-  "alphaMap",
-  "aoMap",
-  "bumpMap",
-  "clearcoatMap",
-  "clearcoatNormalMap",
-  "clearcoatRoughnessMap",
-  "displacementMap",
-  "emissiveMap",
-  "envMap",
-  "iridescenceMap",
-  "iridescenceThicknessMap",
-  "lightMap",
-  "metalnessMap",
-  "normalMap",
-  "roughnessMap",
-  "sheenColorMap",
-  "sheenRoughnessMap",
-  "specularColorMap",
-  "specularIntensityMap",
-  "thicknessMap",
-  "transmissionMap",
-  "anisotropyMap",
-] as const;
-
 import { disposeScene } from "./materialRegistry";
 
 let currentLocalModel: THREE.Group<THREE.Object3DEventMap> | null = null;
@@ -39,11 +13,28 @@ const resetModelState = () => {
   store.setSelectedMeshName(null);
   store.setSelectedMaterialId(null);
   store.clearMaterialSnapshot();
+  // Clear history
+  // @ts-expect-error - temporal is injected by zundo middleware
+  useStore.temporal.getState().clear();
 };
 
 export const loadFromArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
   const loader = new GLTFLoader();
   const gltf = await loader.parseAsync(arrayBuffer, "");
+
+  if (currentLocalModel) {
+    disposeScene(currentLocalModel);
+  }
+
+  currentLocalModel = gltf.scene;
+
+  resetModelState();
+  useStore.getState().setLocalModel(gltf.scene);
+};
+
+export const loadFromUrl = async (url: string) => {
+  const loader = new GLTFLoader();
+  const gltf = await loader.loadAsync(url);
 
   if (currentLocalModel) {
     disposeScene(currentLocalModel);

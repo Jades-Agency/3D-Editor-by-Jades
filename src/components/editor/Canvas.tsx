@@ -6,8 +6,8 @@ import {
   Environment,
   PerspectiveCamera,
 } from "@react-three/drei";
-import { EffectComposer, Bloom, Noise } from "@react-three/postprocessing";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { EffectComposer, Bloom, Noise, ToneMapping } from "@react-three/postprocessing";
+import { Suspense, useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
 import {
   applyMaterialOverrides,
@@ -18,28 +18,16 @@ import * as THREE from "three";
 const CANVAS_GL_CONFIG = Object.freeze({
   antialias: true,
   alpha: true,
-  powerPreference: "default" as WebGLPowerPreference,
+  powerPreference: "high-performance" as WebGLPowerPreference,
   stencil: false,
   depth: true,
 });
 
-const PLACEHOLDER_MATERIAL = Object.freeze({
-  color: "#ffffff",
-  roughness: 0.5,
-  metalness: 0,
-  emissive: "#000000",
-  emissiveIntensity: 0,
-  opacity: 1,
-  transparent: false,
-  side: THREE.FrontSide,
-  wireframe: false,
-});
 
 function Model() {
   const localModel = useStore((state) => state.localModel);
   const transform = useStore((state) => state.transform);
   const materials = useStore((state) => state.materials);
-  const animation = useStore((state) => state.animation);
   const setMaterialSnapshot = useStore((state) => state.setMaterialSnapshot);
   const setSelectedMaterialId = useStore(
     (state) => state.setSelectedMaterialId,
@@ -65,29 +53,13 @@ function Model() {
   }, [transform]);
 
   // Apply material overrides directly to the model
-  const materialsKey = useMemo(
-    () =>
-      materials
-        .map(
-          (m) =>
-            m.id +
-            m.color +
-            m.roughness +
-            m.metalness +
-            m.emissive +
-            m.emissiveIntensity,
-        )
-        .join(),
-    [materials],
-  );
-
   useEffect(() => {
     if (!localModel || materials.length === 0) {
       return;
     }
 
     applyMaterialOverrides(localModel, materials);
-  }, [localModel, materialsKey]);
+  }, [localModel, materials]);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -117,25 +89,7 @@ function Model() {
 }
 
 function PlaceholderModel() {
-  const transform = useStore((state) => state.transform);
-  const setSelectedMeshName = useStore((state) => state.setSelectedMeshName);
-
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    setSelectedMeshName("placeholder");
-  };
-
-  return (
-    <mesh
-      position={transform.position}
-      rotation={transform.rotation}
-      scale={transform.scale}
-      onClick={handleClick}
-    >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshPhysicalMaterial {...PLACEHOLDER_MATERIAL} />
-    </mesh>
-  );
+  return null;
 }
 
 function Lights() {
@@ -196,6 +150,7 @@ function PostProcessing() {
         mipmapBlur
       />
       <Noise opacity={noise.opacity} />
+      <ToneMapping exposure={postProcessing.toneMapping.exposure} />
     </EffectComposer>
   );
 }
@@ -210,8 +165,13 @@ export default function Canvas() {
     const restore = async () => {
       // Give the renderer a moment to settle
       await new Promise((resolve) => setTimeout(resolve, 100));
-      const { loadFromCache } = await import("@/lib/modelLoader");
-      await loadFromCache();
+      const { loadFromCache, loadFromUrl } = await import("@/lib/modelLoader");
+      const loaded = await loadFromCache();
+
+      if (!loaded) {
+        console.info("No cached model found. Loading default 3d_model.glb...");
+        await loadFromUrl("/releases/3d-editor/3d_model.glb");
+      }
     };
     restore();
   }, []);
@@ -222,8 +182,8 @@ export default function Canvas() {
       dpr={[1, 2]}
       gl={CANVAS_GL_CONFIG}
       onCreated={({ gl }) => {
-        gl.toneMapping = THREE.LinearToneMapping;
-        gl.toneMappingExposure = 1.0;
+        gl.toneMapping = THREE.NoToneMapping;
+        gl.setClearColor(0x000000, 0);
         gl.outputColorSpace = THREE.SRGBColorSpace;
 
         const canvas = gl.domElement;
@@ -273,7 +233,7 @@ export default function Canvas() {
         receiveShadow
       >
         <planeGeometry args={[20, 20]} />
-        <shadowMaterial transparent opacity={0.3} />
+        <shadowMaterial transparent opacity={0} />
       </mesh>
 
       <OrbitControls

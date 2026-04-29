@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useStore } from "@/lib/store";
 import { loadStateFromUrl } from "@/lib/urlSync";
 import { Upload } from "lucide-react";
 
@@ -10,15 +9,12 @@ const Canvas = dynamic(() => import("@/components/editor/Canvas"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center">
-      <div
-        className="w-8 h-8 border-2 rounded-full animate-spin"
-        style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
-      />
+      <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" />
     </div>
   ),
 });
 
-const DropZone = dynamic(() => import("@/components/editor/DropZone"), {
+const BottomBar = dynamic(() => import("@/components/editor/BottomBar"), {
   ssr: false,
 });
 
@@ -36,9 +32,6 @@ export default function EditorPage() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
 
-  const localModel = useStore((state) => state.localModel);
-  const hasModel = Boolean(localModel);
-
   useEffect(() => {
     loadStateFromUrl();
     setIsInitializing(false);
@@ -51,7 +44,6 @@ export default function EditorPage() {
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    // Only stop dragging if we leave the main container
     if (e.currentTarget === e.target) {
       setIsGlobalDragging(false);
     }
@@ -74,8 +66,7 @@ export default function EditorPage() {
 
   return (
     <main
-      className="flex w-full h-screen overflow-hidden"
-      style={{ background: "var(--background)" }}
+      className="flex w-full h-screen overflow-hidden bg-background"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -83,57 +74,32 @@ export default function EditorPage() {
       <Suspense
         fallback={
           <div className="w-full h-full flex items-center justify-center">
-            <div
-              className="w-8 h-8 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "var(--primary)",
-                borderTopColor: "transparent",
-              }}
-            />
+            <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" />
           </div>
         }
       >
         <div className="flex-1 relative w-0">
           <Canvas />
           {isGlobalDragging && (
-            <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[var(--primary)]/10 backdrop-blur-[2px] pointer-events-none">
-              <div
-                className="px-8 py-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-3 animate-in zoom-in duration-200"
-                style={{
-                  background: "var(--panel-bg)",
-                  borderColor: "var(--primary)",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-                }}
-              >
-                <div
-                  className="p-4 rounded-full"
-                  style={{ background: "rgba(21, 128, 61, 0.1)" }}
-                >
-                  <Upload
-                    className="w-8 h-8"
-                    style={{ color: "var(--primary)" }}
-                  />
+            <div className="absolute inset-0 z-[100] flex items-center justify-center bg-primary/10 backdrop-blur-[2px] pointer-events-none">
+              <div className="px-8 py-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-3 animate-in zoom-in duration-200 bg-panel-bg border-primary shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+                <div className="p-4 rounded-full bg-primary/10">
+                  <Upload className="w-8 h-8 text-primary" />
                 </div>
-                <p
-                  className="text-lg font-semibold"
-                  style={{ color: "var(--foreground)" }}
-                >
+                <p className="text-lg font-semibold text-foreground">
                   Drop to replace model
                 </p>
               </div>
             </div>
           )}
+          <BottomBar />
         </div>
-        {hasModel ? (
+        <div className="flex h-full">
           <InspectorPanel onExportCode={() => setShowCode(true)} />
-        ) : (
-          <div className="absolute inset-0 z-40 bg-[var(--background)]/80 backdrop-blur-sm">
-            <DropZone />
-          </div>
-        )}
+        </div>
       </Suspense>
 
-      {showCode && <CodeOutput />}
+      {showCode && <CodeOutput onClose={() => setShowCode(false)} />}
     </main>
   );
 }

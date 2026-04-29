@@ -1,7 +1,8 @@
 "use client";
 
 import * as THREE from "three";
-import { create } from "zustand";
+import { create, useStore as useZustandStore } from "zustand";
+import { temporal } from "zundo";
 
 export type EnvironmentPreset =
   | "city"
@@ -146,80 +147,111 @@ export interface ModelStore {
   setAnimation: (config: Partial<AnimationConfig>) => void;
 }
 
-export const useStore = create<ModelStore>((set) => ({
-  localModel: null,
-  selectedMeshName: null,
-  selectedMaterialId: null,
-  materials: [],
-  lights: [
-    { type: "ambient", color: "#ffffff", intensity: 0.5 },
+export const useStore = create<ModelStore>()(
+  temporal(
+    (set) => ({
+      localModel: null,
+      selectedMeshName: null,
+      selectedMaterialId: null,
+      materials: [],
+      lights: [
+        { type: "ambient", color: "#39de75", intensity: 1.2 },
+        {
+          type: "spot",
+          color: "#080e0a",
+          intensity: 15,
+          position: [-1.2, -4.7, -4.8],
+          angle: 0.8,
+          penumbra: 0.7,
+        },
+        { type: "point", color: "#3ade75", intensity: 70, position: [-5, -5, -5] },
+      ],
+      transform: {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: 32,
+      },
+      environment: "forest",
+      camera: {
+        position: [0, 0, 5],
+        fov: 45,
+      },
+      postProcessing: {
+        bloom: {
+          intensity: 0.25,
+          luminanceThreshold: 0,
+          luminanceSmoothing: 1,
+          radius: 0.48,
+        },
+        noise: {
+          opacity: 0,
+        },
+        toneMapping: {
+          exposure: 2,
+        },
+      },
+      animation: {
+        autoRotate: true,
+        autoRotateSpeed: 2,
+      },
+      setLocalModel: (model) => set({ localModel: model }),
+      setSelectedMeshName: (name) => set({ selectedMeshName: name }),
+      setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
+      setMaterialSnapshot: ({ materials, defaultMaterialId }) =>
+        set((state) => ({
+          materials,
+          selectedMaterialId:
+            state.selectedMaterialId &&
+            materials.some((material) => material.id === state.selectedMaterialId)
+              ? state.selectedMaterialId
+              : defaultMaterialId,
+        })),
+      clearMaterialSnapshot: () => set({ materials: [], selectedMaterialId: null }),
+      updateMaterial: (id, updates) =>
+        set((state) => ({
+          materials: state.materials.map((material) =>
+            material.id === id ? { ...material, ...updates } : material,
+          ),
+        })),
+      setLights: (lights) => set({ lights }),
+      setTransform: (transform) =>
+        set((state) => ({ transform: { ...state.transform, ...transform } })),
+      setEnvironment: (env) => set({ environment: env }),
+      setCamera: (config) =>
+        set((state) => ({ camera: { ...state.camera, ...config } })),
+      setPostProcessing: (config) =>
+        set((state) => ({
+          postProcessing: { ...state.postProcessing, ...config },
+        })),
+      setAnimation: (config) =>
+        set((state) => ({ animation: { ...state.animation, ...config } })),
+    }),
     {
-      type: "spot",
-      color: "#ffffff",
-      intensity: Math.PI,
-      position: [5, 5, 5],
-      angle: 0.15,
-      penumbra: 1,
+      partialize: (state) => ({
+        materials: state.materials,
+        lights: state.lights,
+        transform: state.transform,
+        environment: state.environment,
+        camera: state.camera,
+        postProcessing: state.postProcessing,
+        animation: state.animation,
+      }),
+      limit: 100,
+      handleSet: (handleSet) => {
+        let timeout: ReturnType<typeof setTimeout>;
+        return (state) => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => handleSet(state), 200);
+        };
+      },
     },
-    { type: "point", color: "#ffffff", intensity: 100, position: [-5, -5, -5] },
-  ],
-  transform: {
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: 1,
-  },
-  environment: "city",
-  camera: {
-    position: [0, 0, 5],
-    fov: 45,
-  },
-  postProcessing: {
-    bloom: {
-      intensity: 1.5,
-      luminanceThreshold: 0.9,
-      luminanceSmoothing: 0.025,
-      radius: 0.4,
-    },
-    noise: {
-      opacity: 0.05,
-    },
-    toneMapping: {
-      exposure: 1,
-    },
-  },
-  animation: {
-    autoRotate: false,
-    autoRotateSpeed: 2,
-  },
-  setLocalModel: (model) => set({ localModel: model }),
-  setSelectedMeshName: (name) => set({ selectedMeshName: name }),
-  setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
-  setMaterialSnapshot: ({ materials, defaultMaterialId }) =>
-    set((state) => ({
-      materials,
-      selectedMaterialId:
-        state.selectedMaterialId &&
-        materials.some((material) => material.id === state.selectedMaterialId)
-          ? state.selectedMaterialId
-          : defaultMaterialId,
-    })),
-  clearMaterialSnapshot: () => set({ materials: [], selectedMaterialId: null }),
-  updateMaterial: (id, updates) =>
-    set((state) => ({
-      materials: state.materials.map((material) =>
-        material.id === id ? { ...material, ...updates } : material,
-      ),
-    })),
-  setLights: (lights) => set({ lights }),
-  setTransform: (transform) =>
-    set((state) => ({ transform: { ...state.transform, ...transform } })),
-  setEnvironment: (env) => set({ environment: env }),
-  setCamera: (config) =>
-    set((state) => ({ camera: { ...state.camera, ...config } })),
-  setPostProcessing: (config) =>
-    set((state) => ({
-      postProcessing: { ...state.postProcessing, ...config },
-    })),
-  setAnimation: (config) =>
-    set((state) => ({ animation: { ...state.animation, ...config } })),
-}));
+  ),
+);
+
+export const useTemporalStore = <T>(
+  selector: (state: unknown) => T,
+  equalityFn?: (a: T, b: T) => boolean,
+) => {
+  // @ts-expect-error - temporal is injected by zundo middleware
+  return useZustandStore(useStore.temporal, selector, equalityFn);
+};
