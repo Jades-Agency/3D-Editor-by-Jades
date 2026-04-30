@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { loadStateFromUrl } from "@/lib/urlSync";
 import { Upload } from "lucide-react";
+import { useStore } from "@/lib/store";
 
 const Canvas = dynamic(() => import("@/components/editor/Canvas"), {
   ssr: false,
@@ -32,10 +33,20 @@ export default function EditorPage() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
 
+  const theme = useStore((state) => state.theme);
+
   useEffect(() => {
     loadStateFromUrl();
     setIsInitializing(false);
   }, []);
+
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [theme]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

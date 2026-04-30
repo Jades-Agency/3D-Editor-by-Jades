@@ -10,6 +10,7 @@ import {
   Play,
   Palette,
   ChevronDown,
+  Code,
 } from "lucide-react";
 import { cleanup, loadFile } from "@/lib/modelLoader";
 
@@ -135,6 +136,7 @@ export function SliderRow({
 }: SliderRowProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
+  const theme = useStore((state) => state.theme);
 
   useEffect(() => {
     if (!trackRef.current) return;
@@ -165,15 +167,15 @@ export function SliderRow({
 
   return (
     <div className="grid grid-cols-[84px_1fr] gap-[10px] items-center font-sans">
-      <label className="text-[14px] text-white/80">{label}</label>
+      <label className="text-[14px] text-dark-bg/80 dark:text-white/80">{label}</label>
 
       <div
         ref={trackRef}
         className="relative h-4 rounded-sm overflow-hidden flex items-center select-none"
       >
-        {/* 1. Filled area (White) */}
+        {/* 1. Filled area (Dark in light, White in dark) */}
         <div
-          className="h-full bg-white transition-all duration-75"
+          className="h-full bg-dark-bg dark:bg-white transition-all duration-75"
           style={{
             width: filledAreaWidth,
             borderTopRightRadius: "4px",
@@ -187,14 +189,14 @@ export function SliderRow({
           style={{ width: DIVIDER_GAP * 2 + DIVIDER_W }}
         >
           <div
-            className="bg-white rounded-full"
+            className="bg-dark-bg dark:bg-white rounded-full"
             style={{ width: DIVIDER_W, height: "14px" }}
           />
         </div>
 
-        {/* 3. Unfilled area (Dark Gray) */}
+        {/* 3. Unfilled area (Dark 15% in light, White 30% in dark) */}
         <div
-          className="h-full bg-white/30 transition-all duration-75"
+          className="h-full bg-dark-bg/15 dark:bg-white/30 transition-all duration-75"
           style={{
             width: unfilledAreaWidth,
             borderTopLeftRadius: "4px",
@@ -207,7 +209,7 @@ export function SliderRow({
           initial={false}
           animate={{
             x: labelX,
-            color: isRight ? "#ffffff" : "#000000",
+            color: isRight ? (theme === "dark" ? "#ffffff" : "var(--dark-bg)") : (theme === "dark" ? "#000000" : "#ffffff"),
             // Adjust origin/anchor based on side to prevent overlap
             translateX: isRight ? 0 : "-100%",
           }}
@@ -242,7 +244,7 @@ export function SliderRow({
 function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div className="grid grid-cols-[84px_1fr_44px] gap-[10px] items-center">
-      <label className="text-[14px] text-white/80">{label}</label>
+      <label className="text-[14px] text-dark-bg/80 dark:text-white/80">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
@@ -261,17 +263,18 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
 function ToggleRow({ label, checked, onChange }: ToggleRowProps) {
   return (
     <div className="flex justify-between gap-[10px] items-center">
-      <label className="text-[14px] text-white/80">{label}</label>
+      <label className="text-[14px] text-dark-bg/80 dark:text-white/80">{label}</label>
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex size-4 items-center rounded transition-colors border ${
-          checked ? "bg-white border-white" : "bg-panel-bg border-panel-border"
-        }`}
+        className={`relative inline-flex size-4 items-center rounded transition-colors border ${checked
+            ? "bg-dark-bg border-dark-bg dark:bg-white dark:border-white"
+            : "bg-panel-bg border-panel-border"
+          }`}
         aria-pressed={checked}
       >
         {checked && (
-          <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-black" />
+          <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white dark:text-black" />
         )}
       </button>
     </div>
@@ -281,7 +284,7 @@ function ToggleRow({ label, checked, onChange }: ToggleRowProps) {
 function SelectRow({ label, value, onChange, children }: SelectRowProps) {
   return (
     <div className="flex justify-between gap-[10px] items-center">
-      <label className="text-[14px] text-white/80">{label}</label>
+      <label className="text-[14px] text-dark-bg/80 dark:text-white/80">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -289,6 +292,44 @@ function SelectRow({ label, value, onChange, children }: SelectRowProps) {
       >
         {children}
       </select>
+    </div>
+  );
+}
+
+interface SegmentedControlRowProps<T extends string> {
+  label: string;
+  value: T;
+  options: { label: string; value: T }[];
+  onChange: (value: T) => void;
+}
+
+function SegmentedControlRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: SegmentedControlRowProps<T>) {
+  return (
+    <div className="flex justify-between gap-[10px] items-center py-1">
+      <label className="text-[14px] text-dark-bg/80 dark:text-white/80">{label}</label>
+      <div className="flex gap-1">
+        {options.map((option) => {
+          const isActive = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`px-2 py-0.5 text-[12px] rounded-sm transition-all duration-200 ${isActive
+                ? "bg-dark-bg dark:bg-white text-white dark:text-black font-bold"
+                : "bg-dark-bg/10 dark:bg-white/20 text-dark-bg/60 dark:text-white/60 hover:bg-dark-bg/20 dark:hover:bg-white/30 hover:text-dark-bg dark:hover:text-white"
+                }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -435,7 +476,7 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
                 format={(value) => `${Math.round(value)}deg`}
               />
               <div className="grid grid-cols-[84px_1fr] gap-[10px] items-center">
-                <label className="text-[11px] text-text-secondary">
+                <label className="text-[14px] text-dark-bg/80 dark:text-white/80">
                   Cam Pos
                 </label>
                 <div className="flex items-center gap-1">
@@ -720,19 +761,20 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
                     updateMaterial(selectedMaterial.id, { opacity: value })
                   }
                 />
-                <SelectRow
+                <SegmentedControlRow
                   label="Side"
                   value={selectedMaterial.side}
+                  options={[
+                    { label: "Front", value: "front" },
+                    { label: "Back", value: "back" },
+                    { label: "Double", value: "double" },
+                  ]}
                   onChange={(value) =>
                     updateMaterial(selectedMaterial.id, {
                       side: value as "front" | "back" | "double",
                     })
                   }
-                >
-                  <option value="front">Front</option>
-                  <option value="back">Back</option>
-                  <option value="double">Double</option>
-                </SelectRow>
+                />
                 <ToggleRow
                   label="Transparent"
                   checked={selectedMaterial.transparent}
@@ -748,14 +790,6 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
                   }
                 />
               </Subsection>
-
-              <button
-                onClick={resetSelectedMaterial}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-panel-border bg-panel-bg px-3 py-2 text-[11px] font-medium text-text-secondary"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset material
-              </button>
             </div>
           ) : (
             <div className="rounded-lg border border-panel-border bg-panel-bg px-3 py-3 text-[11px] text-text-muted">
@@ -792,11 +826,8 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
 
             <Subsection title="Lights">
               {lights.map((light, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border border-panel-border/60 bg-panel-bg/70 p-2"
-                >
-                  <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                <div key={index} className="space-y-2 py-1">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-muted">
                     {light.type}
                   </div>
                   <div className="space-y-2">
@@ -883,6 +914,25 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
             </Subsection>
           </div>
         </CollapsibleSection>
+      </div>
+      <div className="pt-2 flex gap-2">
+        {selectedMaterial && (
+          <button
+            onClick={resetSelectedMaterial}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
+            title="Reset Material"
+          >
+            <RotateCcw className="size-4" />
+            Reset
+          </button>
+        )}
+        <button
+          onClick={onExportCode}
+          className="flex-1 flex items-center justify-between gap-2 rounded-lg bg-primary px-2.5 py-1.5 text-[14px] font-medium text-black hover:bg-primary/90 transition-all active:scale-95"
+        >
+          <Code className="size-4" />
+          Export Code
+        </button>
       </div>
     </div>
   );
