@@ -134,6 +134,7 @@ export interface ModelStore {
   postProcessing: PostConfig;
   animation: AnimationConfig;
   theme: "dark" | "light";
+  isOnboarding: boolean;
   setLocalModel: (model: THREE.Group<THREE.Object3DEventMap> | null) => void;
   setSelectedMeshName: (name: string | null) => void;
   setSelectedMaterialId: (id: string | null) => void;
@@ -148,6 +149,7 @@ export interface ModelStore {
   setAnimation: (config: Partial<AnimationConfig>) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
+  setIsOnboarding: (val: boolean) => void;
 }
 
 export const useStore = create<ModelStore>()(
@@ -198,6 +200,7 @@ export const useStore = create<ModelStore>()(
         autoRotateSpeed: 2,
       },
       theme: "dark",
+      isOnboarding: false,
       setLocalModel: (model) => set({ localModel: model }),
       setSelectedMeshName: (name) => set({ selectedMeshName: name }),
       setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
@@ -231,6 +234,7 @@ export const useStore = create<ModelStore>()(
         set((state) => ({ animation: { ...state.animation, ...config } })),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+      setIsOnboarding: (val) => set({ isOnboarding: val }),
     }),
     {
       partialize: (state) => ({

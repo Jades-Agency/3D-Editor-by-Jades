@@ -68,6 +68,7 @@ function CollapsibleSection({
   return (
     <section className="bg-panel-bg p-1 rounded-[8px]">
       <button
+        id={`section-${title.toLowerCase()}`}
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-2 py-1.5 text-left bg-white/6 rounded-sm"
       >
@@ -228,6 +229,7 @@ export function SliderRow({
 
         {/* Invisible range input for interaction */}
         <input
+          id={`slider-${label.toLowerCase().replace(/\s+/g, "-")}`}
           type="range"
           min={min}
           max={max}
@@ -353,9 +355,9 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
     setAnimation,
   } = useStore();
   const [openSections, setOpenSections] = useState({
-    model: true,
-    material: true,
-    lighting: true,
+    model: false,
+    material: false,
+    lighting: false,
   });
 
   const selectedMaterial = useMemo(

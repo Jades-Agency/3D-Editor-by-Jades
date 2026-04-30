@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { loadStateFromUrl } from "@/lib/urlSync";
 import { Upload } from "lucide-react";
 import { useStore } from "@/lib/store";
+import OnboardingTour from "@/components/editor/OnboardingTour";
 
 const Canvas = dynamic(() => import("@/components/editor/Canvas"), {
   ssr: false,
@@ -111,6 +112,7 @@ export default function EditorPage() {
       </Suspense>
 
       {showCode && <CodeOutput onClose={() => setShowCode(false)} />}
+      <OnboardingTour />
     </main>
   );
 }
