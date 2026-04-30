@@ -41,7 +41,8 @@ const generateCode = (): string => {
   const modelInstructions = hasModel
     ? `
 // === INSTRUCTIONS ===
-// 1. Place your model file in the public folder (e.g., public/model.glb)
+// 1. Place your model file in the public folder (e.g., public/3d_model.glb)
+//    Note: Assets are served under the basePath /releases/3d-editor/
 // 2. Update the path below to match your model filename
 `
     : "";
@@ -53,7 +54,7 @@ const generateCode = (): string => {
   const modelComponent = hasModel
     ? `
 function Model() {
-  const { scene } = useGLTF('/model.glb');
+  const { scene } = useGLTF('/releases/3d-editor/3d_model.glb');
   return <primitive object={scene} />;
 }`
     : "";
@@ -75,10 +76,7 @@ ${modelComponent}
       ${
         hasModel
           ? `<Model />`
-          : `<mesh position={${JSON.stringify(position)}} rotation={${JSON.stringify(rotation)}} scale={${scale}}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshPhysicalMaterial color="#ffffff" roughness={0.1} metalness={0.2} />
-      </mesh>`
+          : `// No model loaded`
       }
 
       <Environment preset="${env}" />

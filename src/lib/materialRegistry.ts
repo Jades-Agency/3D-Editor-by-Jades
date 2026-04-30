@@ -3,6 +3,34 @@
 import * as THREE from "three";
 import type { MaterialOverride, MaterialSnapshot } from "./store";
 
+type EditableMaterial = THREE.Material &
+  Partial<THREE.MeshPhysicalMaterial> & {
+    attenuationColor?: THREE.Color;
+    sheenColor?: THREE.Color;
+    wireframe?: boolean;
+  };
+
+const GEM_DEFAULT_MATERIAL = {
+  color: "#38de75",
+  roughness: 0.25,
+  metalness: 1,
+  ior: 1.68,
+  transmission: 1,
+  thickness: 5.7,
+  dispersion: 12.4,
+  clearcoat: 0.1,
+  clearcoatRoughness: 0.25,
+  iridescence: 0.3,
+  iridescenceIOR: 1,
+  sheen: 0.82,
+  sheenRoughness: 0.25,
+  sheenColor: "#39de75",
+  anisotropy: 0,
+  emissive: "#66ffa1",
+  emissiveIntensity: 0.05,
+  envMapIntensity: 1,
+};
+
 const SIDE_BY_VALUE: Record<number, MaterialOverride["side"]> = {
   [THREE.FrontSide]: "front",
   [THREE.BackSide]: "back",
@@ -21,49 +49,42 @@ const buildMaterialRecord = (
   material: THREE.Material,
   meshName: string,
 ): MaterialOverride => {
-  const std = material as any;
+  const std = material as EditableMaterial;
 
   // Capture values EXACTLY as they are on the material instance
-  const color = toHex(std.color);
-  const roughness = typeof std.roughness === "number" ? std.roughness : 1;
-  const metalness = typeof std.metalness === "number" ? std.metalness : 0;
-  const emissive = toHex(std.emissive);
-  const emissiveIntensity =
-    typeof std.emissiveIntensity === "number" ? std.emissiveIntensity : 1;
-  const envMapIntensity =
-    typeof std.envMapIntensity === "number" ? std.envMapIntensity : 1;
+  const color = GEM_DEFAULT_MATERIAL.color;
+  const roughness = GEM_DEFAULT_MATERIAL.roughness;
+  const metalness = GEM_DEFAULT_MATERIAL.metalness;
+  const emissive = GEM_DEFAULT_MATERIAL.emissive;
+  const emissiveIntensity = GEM_DEFAULT_MATERIAL.emissiveIntensity;
+  const envMapIntensity = GEM_DEFAULT_MATERIAL.envMapIntensity;
 
-  const transmission =
-    typeof std.transmission === "number" ? std.transmission : 0;
-  const ior = typeof std.ior === "number" ? std.ior : 1.5;
-  const reflectivity =
-    typeof std.reflectivity === "number" ? std.reflectivity : 0.5;
-  const thickness = typeof std.thickness === "number" ? std.thickness : 0;
+  const transmission = GEM_DEFAULT_MATERIAL.transmission;
+  const ior = GEM_DEFAULT_MATERIAL.ior;
+  const reflectivity = typeof std.reflectivity === "number" ? std.reflectivity : 0.5;
+  const thickness = GEM_DEFAULT_MATERIAL.thickness;
   const attenuationColor = toHex(std.attenuationColor);
   const attenuationDistance =
     typeof std.attenuationDistance === "number" &&
     isFinite(std.attenuationDistance)
       ? std.attenuationDistance
       : 10000;
-  const clearcoat = typeof std.clearcoat === "number" ? std.clearcoat : 0;
-  const clearcoatRoughness =
-    typeof std.clearcoatRoughness === "number" ? std.clearcoatRoughness : 0;
-  const sheen = typeof std.sheen === "number" ? std.sheen : 0;
-  const sheenColor = toHex(std.sheenColor);
-  const sheenRoughness =
-    typeof std.sheenRoughness === "number" ? std.sheenRoughness : 0;
+  const clearcoat = GEM_DEFAULT_MATERIAL.clearcoat;
+  const clearcoatRoughness = GEM_DEFAULT_MATERIAL.clearcoatRoughness;
+  const sheen = GEM_DEFAULT_MATERIAL.sheen;
+  const sheenColor = GEM_DEFAULT_MATERIAL.sheenColor;
+  const sheenRoughness = GEM_DEFAULT_MATERIAL.sheenRoughness;
 
-  const dispersion = typeof std.dispersion === "number" ? std.dispersion : 0;
-  const iridescence = typeof std.iridescence === "number" ? std.iridescence : 0;
-  const iridescenceIOR =
-    typeof std.iridescenceIOR === "number" ? std.iridescenceIOR : 1.3;
-  const anisotropy = typeof std.anisotropy === "number" ? std.anisotropy : 0;
+  const dispersion = GEM_DEFAULT_MATERIAL.dispersion;
+  const iridescence = GEM_DEFAULT_MATERIAL.iridescence;
+  const iridescenceIOR = GEM_DEFAULT_MATERIAL.iridescenceIOR;
+  const anisotropy = GEM_DEFAULT_MATERIAL.anisotropy;
 
   const opacity = typeof material.opacity === "number" ? material.opacity : 1;
-  const transparent = Boolean(material.transparent);
+  const transparent = true; // Based on user code
   const side = SIDE_BY_VALUE[material.side] ?? "front";
   const wireframe =
-    "wireframe" in material ? Boolean((material as any).wireframe) : false;
+    "wireframe" in material ? Boolean((material as EditableMaterial).wireframe) : false;
 
   return {
     id: material.uuid,
@@ -165,6 +186,9 @@ export const prepareSceneAndSnapshot = (
       }
     });
 
+    child.castShadow = true;
+    child.receiveShadow = true;
+
     child.material = Array.isArray(child.material)
       ? processedMaterials
       : processedMaterials[0];
@@ -198,6 +222,8 @@ export const applyMaterialOverrides = (
         return;
       }
 
+      const editable = material as EditableMaterial;
+
       const override = materialMap.get(material.uuid);
       if (!override) {
         return;
@@ -230,112 +256,106 @@ export const applyMaterialOverrides = (
 
       if (
         "envMapIntensity" in material &&
-        typeof (material as any).envMapIntensity === "number"
+        typeof editable.envMapIntensity === "number"
       ) {
-        (material as any).envMapIntensity = override.envMapIntensity;
+        editable.envMapIntensity = override.envMapIntensity;
       }
 
-      if ("ior" in material && typeof (material as any).ior === "number") {
-        (material as any).ior = override.ior;
+      if ("ior" in material && typeof editable.ior === "number") {
+        editable.ior = override.ior;
       }
 
       if (
         "reflectivity" in material &&
-        typeof (material as any).reflectivity === "number"
+        typeof editable.reflectivity === "number"
       ) {
-        (material as any).reflectivity = override.reflectivity;
+        editable.reflectivity = override.reflectivity;
       }
 
       if (
         "transmission" in material &&
-        typeof (material as any).transmission === "number"
+        typeof editable.transmission === "number"
       ) {
-        (material as any).transmission = override.transmission;
+        editable.transmission = override.transmission;
       }
 
-      if (
-        "thickness" in material &&
-        typeof (material as any).thickness === "number"
-      ) {
-        (material as any).thickness = override.thickness;
+      if ("thickness" in material && typeof editable.thickness === "number") {
+        editable.thickness = override.thickness;
       }
 
       if (
         "attenuationColor" in material &&
-        (material as any).attenuationColor instanceof THREE.Color
+        editable.attenuationColor instanceof THREE.Color
       ) {
-        (material as any).attenuationColor.setHex(
+        editable.attenuationColor.setHex(
           parseInt(override.attenuationColor.replace("#", ""), 16),
         );
       }
 
       if (
         "attenuationDistance" in material &&
-        typeof (material as any).attenuationDistance === "number"
+        typeof editable.attenuationDistance === "number"
       ) {
-        (material as any).attenuationDistance = override.attenuationDistance;
+        editable.attenuationDistance = override.attenuationDistance;
       }
 
-      if (
-        "clearcoat" in material &&
-        typeof (material as any).clearcoat === "number"
-      ) {
-        (material as any).clearcoat = override.clearcoat;
+      if ("clearcoat" in material && typeof editable.clearcoat === "number") {
+        editable.clearcoat = override.clearcoat;
       }
 
       if (
         "clearcoatRoughness" in material &&
-        typeof (material as any).clearcoatRoughness === "number"
+        typeof editable.clearcoatRoughness === "number"
       ) {
-        (material as any).clearcoatRoughness = override.clearcoatRoughness;
+        editable.clearcoatRoughness = override.clearcoatRoughness;
       }
 
-      if ("sheen" in material && typeof (material as any).sheen === "number") {
-        (material as any).sheen = override.sheen;
+      if ("sheen" in material && typeof editable.sheen === "number") {
+        editable.sheen = override.sheen;
       }
 
       if (
         "sheenColor" in material &&
-        (material as any).sheenColor instanceof THREE.Color
+        editable.sheenColor instanceof THREE.Color
       ) {
-        (material as any).sheenColor.setHex(
+        editable.sheenColor.setHex(
           parseInt(override.sheenColor.replace("#", ""), 16),
         );
       }
 
       if (
         "sheenRoughness" in material &&
-        typeof (material as any).sheenRoughness === "number"
+        typeof editable.sheenRoughness === "number"
       ) {
-        (material as any).sheenRoughness = override.sheenRoughness;
+        editable.sheenRoughness = override.sheenRoughness;
       }
 
       if (
         "dispersion" in material &&
-        typeof (material as any).dispersion === "number"
+        typeof editable.dispersion === "number"
       ) {
-        (material as any).dispersion = override.dispersion;
+        editable.dispersion = override.dispersion;
       }
 
       if (
         "iridescence" in material &&
-        typeof (material as any).iridescence === "number"
+        typeof editable.iridescence === "number"
       ) {
-        (material as any).iridescence = override.iridescence;
+        editable.iridescence = override.iridescence;
       }
 
       if (
         "iridescenceIOR" in material &&
-        typeof (material as any).iridescenceIOR === "number"
+        typeof editable.iridescenceIOR === "number"
       ) {
-        (material as any).iridescenceIOR = override.iridescenceIOR;
+        editable.iridescenceIOR = override.iridescenceIOR;
       }
 
       if (
         "anisotropy" in material &&
-        typeof (material as any).anisotropy === "number"
+        typeof editable.anisotropy === "number"
       ) {
-        (material as any).anisotropy = override.anisotropy;
+        editable.anisotropy = override.anisotropy;
       }
 
       material.opacity = override.opacity;
@@ -348,7 +368,7 @@ export const applyMaterialOverrides = (
             : THREE.FrontSide;
 
       if ("wireframe" in material) {
-        (material as any).wireframe = override.wireframe;
+        editable.wireframe = override.wireframe;
       }
 
       material.needsUpdate = true;
