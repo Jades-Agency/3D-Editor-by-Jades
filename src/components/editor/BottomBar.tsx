@@ -2,15 +2,35 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { loadFile } from "@/lib/modelLoader";
-import { Upload, Loader2, Undo2, Redo2, Sun, Moon } from "lucide-react";
+import { Upload, Loader2, Undo2, Redo2, Sun, Moon, Code } from "lucide-react";
 import { useTemporalStore, useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
-export default function BottomBar() {
+interface BottomBarProps {
+  showCode: boolean;
+  onToggleCode: () => void;
+}
+
+export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggleTheme } = useStore();
+  const onboardingLoadingOverlay = useStore((s) => s.onboardingLoadingOverlay);
+
+  // True only if the onboarding dropzone was showing when this component first mounted —
+  // used to decide whether to start hidden and animate in, vs just rendering normally.
+  const [isInOnboardingMode] = useState(
+    () => useStore.getState().showOnboardingDropzone || useStore.getState().onboardingLoadingOverlay
+  );
+  const [revealed, setRevealed] = useState(!isInOnboardingMode);
+
+  useEffect(() => {
+    if (isInOnboardingMode && !onboardingLoadingOverlay) {
+      setRevealed(true);
+    }
+  }, [isInOnboardingMode, onboardingLoadingOverlay]);
 
   const { undo, redo, pastStates, futureStates } = useTemporalStore(
     // @ts-expect-error - state type is complex from zundo
@@ -60,7 +80,8 @@ export default function BottomBar() {
   }, [handleUndo, handleRedo]);
 
   const handleModelFile = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".glb")) {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".glb") && !name.endsWith(".gltf")) {
       return;
     }
 
@@ -85,74 +106,95 @@ export default function BottomBar() {
   };
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
-      <div className="flex items-center gap-2">
-        {/* Theme Toggle - Outside main bar */}
-        <div className="p-1 rounded-lg border border-black/10 dark:border-white/10 bg-dark-bg/5 dark:bg-white/5">
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-center p-1.5 rounded-sm dark:border-white/10 bg-dark-bg/5 dark:bg-white/10 backdrop-blur-md shadow-2xl text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
-            title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+    <>
+      <motion.div
+        className="absolute bottom-10.5 left-1/2 -translate-x-1/2 z-50"
+        initial={{ y: isInOnboardingMode ? 80 : 0, opacity: isInOnboardingMode ? 0 : 1 }}
+        animate={{ y: revealed ? 0 : 80, opacity: revealed ? 1 : 0 }}
+        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <div className="flex items-center gap-2">
+          {/* Code Toggle */}
+          <div className="p-1 rounded-lg border border-black/10 dark:border-white/10 bg-dark-bg/5 dark:bg-white/5">
+            <button
+              onClick={onToggleCode}
+              className={`flex items-center justify-center p-1.5 rounded-sm backdrop-blur-md shadow-2xl transition-all active:scale-95 ${
+                showCode
+                  ? "bg-primary/20 text-primary"
+                  : "bg-dark-bg/5 dark:bg-white/10 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10"
+              }`}
+              title="Toggle code panel"
+            >
+              <Code className="size-4" />
+            </button>
+          </div>
+
+          {/* Main Bar */}
+          <div
+            className="flex items-center gap-22 p-1 rounded-lg border border-black/10 dark:border-white/10 bg-dark-bg/5 dark:bg-white/5 backdrop-blur-md shadow-2xl"
           >
-            {theme === "dark" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Moon className="size-4" />
-            )}
-          </button>
-        </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
 
-        {/* Main Bar */}
-        <div
-          className="flex items-center gap-42 p-1 rounded-lg border border-black/10 dark:border-white/10 bg-dark-bg/5 dark:bg-white/5 backdrop-blur-md shadow-2xl"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".glb,model/gltf-binary"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleUploadClick}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 rounded-sm px-3 py-1.5 text-[13px] leading-0 font-medium text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50 bg-black/5 dark:bg-white/10"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Upload
+              </button>
+            </div>
 
-          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="flex items-center justify-center p-1.5 rounded-sm bg-black/5 dark:bg-white/10 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed"
+                title={canUndo ? `Undo (Cmd+Z) - ${pastStates.length} steps` : "Nothing to undo"}
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="flex items-center justify-center p-1.5 rounded-sm bg-black/5 dark:bg-white/10 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed"
+                title={canRedo ? `Redo (Cmd+Shift+Z) - ${futureStates.length} steps` : "Nothing to redo"}
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          {/* Theme Toggle - Outside main bar */}
+          <div className="p-1 rounded-lg border border-black/10 dark:border-white/10 bg-dark-bg/5 dark:bg-white/5">
             <button
-              onClick={handleUploadClick}
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 rounded-sm px-3 py-1.5 text-[13px] leading-0 font-medium text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50 bg-black/5 dark:bg-white/10"
+              onClick={toggleTheme}
+              className="flex items-center justify-center p-1.5 rounded-sm dark:border-white/10 bg-dark-bg/5 dark:bg-white/10 backdrop-blur-md shadow-2xl text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              {theme === "dark" ? (
+                <Sun className="size-4" />
               ) : (
-                <Upload className="h-4 w-4" />
+                <Moon className="size-4" />
               )}
-              Upload
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleUndo}
-              disabled={!canUndo}
-              className="flex items-center justify-center p-1.5 rounded-sm bg-black/5 dark:bg-white/10 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed"
-              title={canUndo ? `Undo (Cmd+Z) - ${pastStates.length} steps` : "Nothing to undo"}
-            >
-              <Undo2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={!canRedo}
-              className="flex items-center justify-center p-1.5 rounded-sm bg-black/5 dark:bg-white/10 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed"
-              title={canRedo ? `Redo (Cmd+Shift+Z) - ${futureStates.length} steps` : "Nothing to redo"}
-            >
-              <Redo2 className="h-4 w-4" />
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="text-[12px] dark:text-white/70 text-black/70 flex items-center gap-1.5">
-        OSS tool by <Image src="jades.svg" alt="Jades" width={48} height={13} />
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-100 text-[12px] dark:text-white/70 text-black/70 flex items-center gap-1.5 pointer-events-none">
+        OSS by <Image src="jades.svg" alt="Jades" width={48} height={13} />
       </div>
-    </div>
+    </>
   );
 }

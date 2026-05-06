@@ -135,6 +135,9 @@ export interface ModelStore {
   animation: AnimationConfig;
   theme: "dark" | "light";
   isOnboarding: boolean;
+  showOnboardingDropzone: boolean;
+  onboardingDragOver: boolean;
+  onboardingLoadingOverlay: boolean;
   setLocalModel: (model: THREE.Group<THREE.Object3DEventMap> | null) => void;
   setSelectedMeshName: (name: string | null) => void;
   setSelectedMaterialId: (id: string | null) => void;
@@ -150,6 +153,9 @@ export interface ModelStore {
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
   setIsOnboarding: (val: boolean) => void;
+  setShowOnboardingDropzone: (val: boolean) => void;
+  setOnboardingDragOver: (val: boolean) => void;
+  setOnboardingLoadingOverlay: (val: boolean) => void;
 }
 
 export const useStore = create<ModelStore>()(
@@ -178,7 +184,7 @@ export const useStore = create<ModelStore>()(
       },
       environment: "forest",
       camera: {
-        position: [0, 0, 5],
+        position: [0, 0, 14],
         fov: 45,
       },
       postProcessing: {
@@ -201,6 +207,9 @@ export const useStore = create<ModelStore>()(
       },
       theme: "dark",
       isOnboarding: false,
+      showOnboardingDropzone: false,
+      onboardingDragOver: false,
+      onboardingLoadingOverlay: false,
       setLocalModel: (model) => set({ localModel: model }),
       setSelectedMeshName: (name) => set({ selectedMeshName: name }),
       setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
@@ -235,6 +244,9 @@ export const useStore = create<ModelStore>()(
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
       setIsOnboarding: (val) => set({ isOnboarding: val }),
+      setShowOnboardingDropzone: (val) => set({ showOnboardingDropzone: val }),
+      setOnboardingDragOver: (val) => set({ onboardingDragOver: val }),
+      setOnboardingLoadingOverlay: (val) => set({ onboardingLoadingOverlay: val }),
     }),
     {
       partialize: (state) => ({

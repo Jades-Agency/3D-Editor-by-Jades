@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { motion, useAnimation, AnimatePresence, animate } from "framer-motion";
 import { useStore } from "@/lib/store";
 
@@ -8,20 +8,25 @@ export default function OnboardingTour() {
   const [isVisible, setIsVisible] = useState(false);
   const mouseControls = useAnimation();
   const {
-    materials,
     updateMaterial,
-    selectedMaterialId,
     setSelectedMaterialId,
     setIsOnboarding,
-    transform,
     setTransform,
-    animation,
-    setAnimation
+    setAnimation,
+    setShowOnboardingDropzone,
+    setOnboardingDragOver,
+    setOnboardingLoadingOverlay,
   } = useStore();
   const [hasRun, setHasRun] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
 
-  // Helper to wait for an element to appear in the DOM
+  // Hide the panel before the first paint on first visits — avoids a flash of the panel
+  useLayoutEffect(() => {
+    if (!localStorage.getItem("has-seen-onboarding")) {
+      setShowOnboardingDropzone(true);
+    }
+  }, []);
+
   const waitForElement = (id: string, timeout = 5000): Promise<HTMLElement | null> => {
     return new Promise((resolve) => {
       const startTime = Date.now();
@@ -39,6 +44,17 @@ export default function OnboardingTour() {
     });
   };
 
+  const waitForMaterials = (): Promise<void> => {
+    return new Promise((resolve) => {
+      const check = setInterval(() => {
+        if (useStore.getState().materials.length > 0) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 100);
+    });
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem("has-seen-onboarding");
     if (saved) {
@@ -46,27 +62,78 @@ export default function OnboardingTour() {
       return;
     }
 
-    if (materials.length > 0 && !hasRun) {
+    if (!hasRun) {
       const timer = setTimeout(() => {
         setIsVisible(true);
         runTour();
-      }, 2000);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [materials, hasRun]);
+  }, [hasRun]);
 
   const runTour = async () => {
     setHasRun(true);
     setIsOnboarding(true);
     localStorage.setItem("has-seen-onboarding", "true");
 
-    // Initial position (center)
-    await mouseControls.set({ x: "50vw", y: "50vh", opacity: 0, scale: 0.5 });
-    await mouseControls.start({ opacity: 1, scale: 1, transition: { duration: 1.2, ease: "easeOut" } });
+    // 0. Dropzone overlay is already visible (set before first paint via useLayoutEffect)
+    await new Promise(r => setTimeout(r, 400));
+
+    const dropzoneBox = await waitForElement("onboarding-dropzone-box");
+    if (dropzoneBox) {
+      const rect = dropzoneBox.getBoundingClientRect();
+      const targetX = rect.left + rect.width / 2;
+      const targetY = rect.top + rect.height / 2;
+
+      // Cursor rises up from below (as if carrying a file from the taskbar)
+      await mouseControls.set({ x: targetX, y: window.innerHeight + 40, opacity: 1, scale: 1 });
+
+      // Rise up into the dropzone
+      await mouseControls.start({
+        x: targetX,
+        y: targetY,
+        transition: { duration: 0.7, ease: "easeInOut" },
+      });
+
+      // Hover — highlight the dropzone
+      setOnboardingDragOver(true);
+      await new Promise(r => setTimeout(r, 300));
+
+      // Drop
+      setIsClicking(true);
+      await mouseControls.start({ scale: 0.8, transition: { duration: 0.15 } });
+      await new Promise(r => setTimeout(r, 120));
+
+      setOnboardingDragOver(false);
+
+      // Keep the 3D hidden while UI animates in — loading overlay takes over from dropzone
+      setOnboardingLoadingOverlay(true);
+
+      // Load the default model now that the "drop" happened
+      const { loadFromUrl } = await import("@/lib/modelLoader");
+      await loadFromUrl("/releases/3d-editor/3d_model.glb");
+
+      setShowOnboardingDropzone(false); // dropzone box fades out; loading overlay stays
+      setIsClicking(false);
+      await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+
+      // Wait for inspector to fully slide in (150ms ready delay + 350ms animation + buffer)
+      await new Promise(r => setTimeout(r, 550));
+
+      // Reveal the 3D — loading overlay fades out, bottom bar slides up simultaneously
+      setOnboardingLoadingOverlay(false);
+
+      // Wait for materials to be extracted from the loaded model
+      await waitForMaterials();
+      await new Promise(r => setTimeout(r, 400));
+    }
 
     // 1. Move to Material Section Toggle
     const materialToggle = await waitForElement("section-material");
     if (materialToggle) {
+      // Wait for the inspector panel slide-in animation to finish before reading position
+      await new Promise(r => setTimeout(r, 400));
+
       const rect = materialToggle.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
@@ -74,14 +141,14 @@ export default function OnboardingTour() {
       await mouseControls.start({
         x,
         y,
-        transition: { duration: 1.5, ease: [0.4, 0, 0.2, 1] },
+        transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
       });
 
-      // Click effect
       setIsClicking(true);
       await mouseControls.start({ scale: 0.8, transition: { duration: 0.15 } });
 
-      // Ensure we have a material selected so the sliders will exist
+      // Read fresh state — closure values are stale since model loaded after tour started
+      const { materials, selectedMaterialId } = useStore.getState();
       if (!selectedMaterialId && materials.length > 0) {
         setSelectedMaterialId(materials[0].id);
       }
@@ -91,13 +158,12 @@ export default function OnboardingTour() {
       setIsClicking(false);
       await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
 
-      // Wait for expand animation AND for the React state to catch up
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     // 2. Change Metalness
+    const { materials, selectedMaterialId } = useStore.getState();
     if (materials.length > 0) {
-      // Re-verify selection for safety
       const matId = selectedMaterialId || materials[0].id;
 
       const metalnessSlider = await waitForElement("slider-metalness");
@@ -113,15 +179,14 @@ export default function OnboardingTour() {
         await mouseControls.start({
           x: startX,
           y,
-          transition: { duration: 1, ease: "easeInOut" },
+          transition: { duration: 0.4, ease: "easeInOut" },
         });
 
         setIsClicking(true);
         await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
 
-        // Decrease
         await animate(startX, endX, {
-          duration: 1.2,
+          duration: 0.7,
           ease: "easeInOut",
           onUpdate: (latest) => {
             const progress = (latest - startX) / (endX - startX);
@@ -131,9 +196,8 @@ export default function OnboardingTour() {
           }
         });
 
-        // Back to initial
         await animate(endX, startX, {
-          duration: 1.2,
+          duration: 0.7,
           ease: "easeInOut",
           onUpdate: (latest) => {
             const progress = (latest - endX) / (startX - endX);
@@ -149,7 +213,7 @@ export default function OnboardingTour() {
     }
 
     // 3. Turn Model
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     const inspectorWidth = 320;
     const centerX = (window.innerWidth - inspectorWidth) / 2;
     const centerY = window.innerHeight / 2;
@@ -157,22 +221,23 @@ export default function OnboardingTour() {
     await mouseControls.start({
       x: centerX,
       y: centerY,
-      transition: { duration: 1.2, ease: "easeInOut" },
+      transition: { duration: 0.5, ease: "easeInOut" },
     });
 
-    const initialAutoRotate = animation.autoRotate;
-    const initialRotation = [...transform.rotation] as [number, number, number];
+    // Read fresh animation/transform state
+    const currentState = useStore.getState();
+    const initialAutoRotate = currentState.animation.autoRotate;
+    const initialRotation = [...currentState.transform.rotation] as [number, number, number];
 
     setAnimation({ autoRotate: false });
 
     setIsClicking(true);
     await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
 
-    const dragDistance = 150; // pixels
+    const dragDistance = 150;
 
-    // Turn Left
     await animate(centerX, centerX - dragDistance, {
-      duration: 1,
+      duration: 0.6,
       ease: [0.4, 0, 0.2, 1],
       onUpdate: (latest) => {
         const p = (latest - centerX) / -dragDistance;
@@ -182,9 +247,8 @@ export default function OnboardingTour() {
       }
     });
 
-    // Turn Right
     await animate(centerX - dragDistance, centerX + dragDistance, {
-      duration: 1.5,
+      duration: 0.9,
       ease: "easeInOut",
       onUpdate: (latest) => {
         const p = (latest - (centerX - dragDistance)) / (dragDistance * 2);
@@ -194,9 +258,8 @@ export default function OnboardingTour() {
       }
     });
 
-    // Back to Center
     await animate(centerX + dragDistance, centerX, {
-      duration: 1,
+      duration: 0.6,
       ease: [0.4, 0, 0.2, 1],
       onUpdate: (latest) => {
         const p = (latest - (centerX + dragDistance)) / -dragDistance;
@@ -211,11 +274,11 @@ export default function OnboardingTour() {
     setAnimation({ autoRotate: initialAutoRotate });
 
     // Finish
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await mouseControls.start({
       opacity: 0,
       scale: 2,
-      transition: { duration: 1.2, ease: "easeInOut" }
+      transition: { duration: 0.6, ease: "easeInOut" }
     });
     setIsVisible(false);
     setIsOnboarding(false);
@@ -227,10 +290,9 @@ export default function OnboardingTour() {
         <motion.div
           initial={{ x: "50vw", y: "50vh", opacity: 0, scale: 0.5 }}
           animate={mouseControls}
-          className="fixed top-0 left-0 pointer-events-none z-[9999]"
+          className="fixed top-0 left-0 pointer-events-none z-9999"
         >
           <div className="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
-            {/* Inner Glow */}
             <motion.div
               animate={{
                 scale: isClicking ? [1, 1.5, 1.2] : 1,
@@ -239,7 +301,6 @@ export default function OnboardingTour() {
               className="absolute inset-0 bg-primary rounded-full blur-2xl"
             />
 
-            {/* Primary blurred circle */}
             <motion.div
               animate={{
                 scale: isClicking ? 0.5 : 1,
@@ -250,10 +311,8 @@ export default function OnboardingTour() {
               className="size-10 bg-primary/80 rounded-full blur-[2px] border border-white/40 backdrop-blur-sm"
             />
 
-            {/* Core */}
             <div className="absolute size-2 bg-white rounded-full shadow-[0_0_10px_white]" />
 
-            {/* Click Ripple */}
             <AnimatePresence>
               {isClicking && (
                 <motion.div

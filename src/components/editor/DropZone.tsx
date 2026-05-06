@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { loadFile } from "@/lib/modelLoader";
-import { Upload, Loader2 } from "lucide-react";
+import { Box, Loader2 } from "lucide-react";
 
 export default function DropZone() {
   const [isDragging, setIsDragging] = useState(false);
@@ -22,7 +22,8 @@ export default function DropZone() {
   }, []);
 
   const handleModelFile = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".glb")) {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".glb") && !name.endsWith(".gltf")) {
       return;
     }
 
@@ -65,7 +66,7 @@ export default function DropZone() {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={`
-          w-80 h-80 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer
+          w-80 h-80 rounded-2xl border-2 border-dashed flex flex-col items-center cursor-pointer
           transition-all duration-200
           ${
             isDragging
@@ -81,7 +82,7 @@ export default function DropZone() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb,model/gltf-binary"
+          accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -93,20 +94,18 @@ export default function DropZone() {
           />
         ) : (
           <>
-            <Upload
-              className="w-16 h-16 mb-4"
-              style={{
-                color: isDragging ? "var(--primary)" : "var(--text-muted)",
-              }}
-            />
-            <p
-              className="text-lg font-medium mb-2"
-              style={{ color: "var(--foreground)" }}
-            >
-              Drop .glb file here
-            </p>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              or click to browse from your computer
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <Box
+                className="w-14 h-14"
+                style={{ color: isDragging ? "var(--primary)" : "var(--primary)" }}
+                strokeWidth={1.25}
+              />
+              <p className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
+                Drop 3D model
+              </p>
+            </div>
+            <p className="pb-5 text-xs" style={{ color: "var(--text-muted)" }}>
+              .glb or .gltf file
             </p>
           </>
         )}

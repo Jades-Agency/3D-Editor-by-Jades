@@ -5,19 +5,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore, type EnvironmentPreset } from "@/lib/store";
 import {
   Check,
+  Copy,
   SunDim,
   RotateCcw,
   Play,
   Palette,
   ChevronDown,
-  Code,
 } from "lucide-react";
 import { cleanup, loadFile } from "@/lib/modelLoader";
+import { generateFormattedCode } from "@/lib/codeGen";
 import ColorPicker from "@/components/editor/ColorPicker";
 
-interface InspectorPanelProps {
-  onExportCode: () => void;
-}
+interface InspectorPanelProps {}
 
 interface SectionProps {
   icon: ReactNode;
@@ -67,13 +66,12 @@ function CollapsibleSection({
   children,
 }: SectionProps) {
   return (
-    <section className="bg-panel-bg p-1 rounded-[8px]">
+    <section className="bg-panel-bg p-1 rounded-md">
       <button
         id={`section-${title.toLowerCase()}`}
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-2 py-1.5 text-left bg-white/6 rounded-sm"
       >
-        <span className="text-primary">{icon}</span>
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
           {title}
         </span>
@@ -327,7 +325,7 @@ function SegmentedControlRow<T extends string>({
   );
 }
 
-export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
+export default function InspectorPanel({}: InspectorPanelProps) {
   const {
     lights,
     setLights,
@@ -350,6 +348,14 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
     material: false,
     lighting: false,
   });
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    const code = await generateFormattedCode();
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const selectedMaterial = useMemo(
     () =>
@@ -405,7 +411,7 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
   };
 
   return (
-    <div className="w-80 shrink-0 flex flex-col overflow-hidden bg-panel-bg border border-white/10 rounded-[16px] m-2 flex-1 p-2">
+    <div className="w-80 shrink-0 flex flex-col overflow-hidden bg-panel-bg border border-white/10 rounded-lg m-2 flex-1 p-2">
       <div className="flex-1 overflow-y-auto text-[12px] space-y-1 rounded-lg">
         <CollapsibleSection
           icon={<Play className="h-4 w-4" />}
@@ -913,20 +919,45 @@ export default function InspectorPanel({ onExportCode }: InspectorPanelProps) {
         {selectedMaterial && (
           <button
             onClick={resetSelectedMaterial}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
             title="Reset Material"
           >
             <RotateCcw className="size-4" />
             Reset
           </button>
         )}
-        <button
-          onClick={onExportCode}
-          className="flex-1 flex items-center justify-between gap-2 rounded-lg bg-primary px-2.5 py-1.5 text-[14px] font-medium text-black hover:bg-primary/90 transition-all active:scale-95"
+        <motion.button
+          onClick={handleCopyCode}
+          className="flex-1 flex items-center justify-between rounded-sm bg-primary px-2.5 py-1.5 text-[14px] font-medium text-black hover:bg-primary/90 transition-colors overflow-hidden"
         >
-          <Code className="size-4" />
-          Export Code
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {copied ? (
+              <motion.span
+                key="copied"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-between w-full"
+              >
+                <Check className="size-4" />
+                <span>Copied!</span>
+              </motion.span>
+            ) : (
+              <motion.span
+                key="copy"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-between w-full"
+              >
+                <Copy className="size-4" />
+                <span>Copy Code</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     </div>
   );

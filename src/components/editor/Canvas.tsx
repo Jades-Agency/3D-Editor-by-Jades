@@ -165,6 +165,10 @@ export default function Canvas() {
     const restore = async () => {
       // Give the renderer a moment to settle
       await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // On first visit, skip auto-load — the onboarding tour handles it
+      if (!localStorage.getItem("has-seen-onboarding")) return;
+
       const { loadFromCache, loadFromUrl } = await import("@/lib/modelLoader");
       const loaded = await loadFromCache();
 
