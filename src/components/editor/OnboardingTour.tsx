@@ -47,10 +47,14 @@ export default function OnboardingTour() {
     });
   };
 
-  const waitForMaterials = (): Promise<void> => {
+  const waitForModelViewReady = (timeoutMs = 30_000): Promise<void> => {
     return new Promise((resolve) => {
+      const start = Date.now();
       const check = setInterval(() => {
-        if (useStore.getState().materials.length > 0) {
+        if (useStore.getState().modelViewReady) {
+          clearInterval(check);
+          resolve();
+        } else if (Date.now() - start > timeoutMs) {
           clearInterval(check);
           resolve();
         }
@@ -138,8 +142,8 @@ export default function OnboardingTour() {
         // Reveal the 3D — loading overlay fades out, bottom bar slides up simultaneously
         setOnboardingLoadingOverlay(false);
 
-        // Wait for materials to be extracted from the loaded model
-        await waitForMaterials();
+        // Wait until the WebGL view has synced this model (loader may set materials earlier)
+        await waitForModelViewReady();
         await new Promise((r) => setTimeout(r, 400));
       }
 

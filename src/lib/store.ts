@@ -138,6 +138,7 @@ export interface ModelStore {
   showOnboardingDropzone: boolean;
   onboardingDragOver: boolean;
   onboardingLoadingOverlay: boolean;
+  modelViewReady: boolean;
   setLocalModel: (model: THREE.Group<THREE.Object3DEventMap> | null) => void;
   setSelectedMeshName: (name: string | null) => void;
   setSelectedMaterialId: (id: string | null) => void;
@@ -156,6 +157,7 @@ export interface ModelStore {
   setShowOnboardingDropzone: (val: boolean) => void;
   setOnboardingDragOver: (val: boolean) => void;
   setOnboardingLoadingOverlay: (val: boolean) => void;
+  setModelViewReady: (val: boolean) => void;
 }
 
 export const useStore = create<ModelStore>()(
@@ -210,6 +212,7 @@ export const useStore = create<ModelStore>()(
       showOnboardingDropzone: false,
       onboardingDragOver: false,
       onboardingLoadingOverlay: false,
+      modelViewReady: false,
       setLocalModel: (model) => set({ localModel: model }),
       setSelectedMeshName: (name) => set({ selectedMeshName: name }),
       setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
@@ -247,6 +250,7 @@ export const useStore = create<ModelStore>()(
       setShowOnboardingDropzone: (val) => set({ showOnboardingDropzone: val }),
       setOnboardingDragOver: (val) => set({ onboardingDragOver: val }),
       setOnboardingLoadingOverlay: (val) => set({ onboardingLoadingOverlay: val }),
+      setModelViewReady: (val) => set({ modelViewReady: val }),
     }),
     {
       partialize: (state) => ({
