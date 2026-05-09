@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { useStore } from "./store";
 
-import { disposeScene } from "./materialRegistry";
+import { disposeScene, prepareSceneAndSnapshot } from "./materialRegistry";
 
 let currentLocalModel: THREE.Group<THREE.Object3DEventMap> | null = null;
 
@@ -29,6 +29,8 @@ export const loadFromArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
 
   resetModelState();
   useStore.getState().setLocalModel(gltf.scene);
+  const snapshot = prepareSceneAndSnapshot(gltf.scene);
+  useStore.getState().setMaterialSnapshot(snapshot);
 };
 
 export const loadFromUrl = async (url: string) => {
@@ -43,6 +45,8 @@ export const loadFromUrl = async (url: string) => {
 
   resetModelState();
   useStore.getState().setLocalModel(gltf.scene);
+  const snapshot = prepareSceneAndSnapshot(gltf.scene);
+  useStore.getState().setMaterialSnapshot(snapshot);
 };
 
 export const loadFile = async (file: File): Promise<void> => {
