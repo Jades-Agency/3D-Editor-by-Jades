@@ -6,6 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "3D Editor",
   description: "Real-time 3D model viewer and configurator",
+  icons: {
+    icon: "/Jades_Stone.png",
+    shortcut: "/Jades_Stone.png",
+    apple: "/Jades_Stone.png",
+  },
 };
 
 export default function RootLayout({

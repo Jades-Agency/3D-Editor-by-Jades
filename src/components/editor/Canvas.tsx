@@ -40,7 +40,17 @@ function Model() {
     if (!localModel) return;
 
     const snapshot = prepareSceneAndSnapshot(localModel);
-    setMaterialSnapshot(snapshot);
+    const temporal = useStore.temporal.getState();
+    const isOnboarding = useStore.getState().isOnboarding;
+    // During onboarding the tour pauses temporal history until the tour ends — do not resume here.
+    if (isOnboarding) {
+      setMaterialSnapshot(snapshot);
+    } else {
+      temporal.pause();
+      setMaterialSnapshot(snapshot);
+      temporal.clear();
+      temporal.resume();
+    }
   }, [localModel, setMaterialSnapshot]);
 
   // Sync transform
