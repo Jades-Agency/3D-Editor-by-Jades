@@ -14,7 +14,6 @@ const resetModelState = () => {
   store.setSelectedMaterialId(null);
   store.clearMaterialSnapshot();
   // Clear history
-  // @ts-expect-error - temporal is injected by zundo middleware
   useStore.temporal.getState().clear();
 };
 

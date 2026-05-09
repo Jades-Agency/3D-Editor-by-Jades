@@ -6,7 +6,6 @@ import { javascript } from "@codemirror/lang-javascript";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { generateFormattedCode } from "@/lib/codeGen";
 import { Copy, Check, X } from "lucide-react";
-
 import { tags } from "@lezer/highlight";
 
 interface CodeOutputProps {
@@ -117,34 +116,34 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-[90%] max-w-4xl h-[80%] rounded-2xl overflow-hidden flex flex-col bg-panel-bg border border-panel-border shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-panel-border">
-          <h2 className="text-sm font-semibold text-foreground">
-            Generated Code
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopy}
-              className="p-2 rounded-lg transition-colors text-text-muted"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-primary" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg transition-colors text-text-muted"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+    <div className="h-full flex flex-col bg-panel-bg rounded-sm border border-panel-border">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-panel-border shrink-0">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+          Generated Code
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleCopy}
+            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-white/10"
+            title="Copy code"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-primary" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-white/10"
+            title="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-
-        <div ref={editorRef} className="flex-1 overflow-hidden" />
       </div>
+
+      <div ref={editorRef} className="flex-1 overflow-hidden" />
     </div>
   );
 }
