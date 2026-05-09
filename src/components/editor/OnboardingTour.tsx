@@ -27,7 +27,10 @@ export default function OnboardingTour() {
     }
   }, []);
 
-  const waitForElement = (id: string, timeout = 5000): Promise<HTMLElement | null> => {
+  const waitForElement = (
+    id: string,
+    timeout = 5000,
+  ): Promise<HTMLElement | null> => {
     return new Promise((resolve) => {
       const startTime = Date.now();
       const check = () => {
@@ -72,215 +75,263 @@ export default function OnboardingTour() {
   }, [hasRun]);
 
   const runTour = async () => {
-    setHasRun(true);
-    setIsOnboarding(true);
-    localStorage.setItem("has-seen-onboarding", "true");
+    const temporal = useStore.temporal.getState();
+    temporal.pause();
+    temporal.clear();
+    try {
+      setHasRun(true);
+      setIsOnboarding(true);
+      localStorage.setItem("has-seen-onboarding", "true");
 
-    // 0. Dropzone overlay is already visible (set before first paint via useLayoutEffect)
-    await new Promise(r => setTimeout(r, 400));
+      // 0. Dropzone overlay is already visible (set before first paint via useLayoutEffect)
+      await new Promise((r) => setTimeout(r, 400));
 
-    const dropzoneBox = await waitForElement("onboarding-dropzone-box");
-    if (dropzoneBox) {
-      const rect = dropzoneBox.getBoundingClientRect();
-      const targetX = rect.left + rect.width / 2;
-      const targetY = rect.top + rect.height / 2;
+      const dropzoneBox = await waitForElement("onboarding-dropzone-box");
+      if (dropzoneBox) {
+        const rect = dropzoneBox.getBoundingClientRect();
+        const targetX = rect.left + rect.width / 2;
+        const targetY = rect.top + rect.height / 2;
 
-      // Cursor rises up from below (as if carrying a file from the taskbar)
-      await mouseControls.set({ x: targetX, y: window.innerHeight + 40, opacity: 1, scale: 1 });
+        // Cursor rises up from below (as if carrying a file from the taskbar)
+        await mouseControls.set({
+          x: targetX,
+          y: window.innerHeight + 40,
+          opacity: 1,
+          scale: 1,
+        });
 
-      // Rise up into the dropzone
-      await mouseControls.start({
-        x: targetX,
-        y: targetY,
-        transition: { duration: 0.7, ease: "easeInOut" },
-      });
+        // Rise up into the dropzone
+        await mouseControls.start({
+          x: targetX,
+          y: targetY,
+          transition: { duration: 0.7, ease: "easeInOut" },
+        });
 
-      // Hover — highlight the dropzone
-      setOnboardingDragOver(true);
-      await new Promise(r => setTimeout(r, 300));
+        // Hover — highlight the dropzone
+        setOnboardingDragOver(true);
+        await new Promise((r) => setTimeout(r, 300));
 
-      // Drop
-      setIsClicking(true);
-      await mouseControls.start({ scale: 0.8, transition: { duration: 0.15 } });
-      await new Promise(r => setTimeout(r, 120));
+        // Drop
+        setIsClicking(true);
+        await mouseControls.start({
+          scale: 0.8,
+          transition: { duration: 0.15 },
+        });
+        await new Promise((r) => setTimeout(r, 120));
 
-      setOnboardingDragOver(false);
+        setOnboardingDragOver(false);
 
-      // Keep the 3D hidden while UI animates in — loading overlay takes over from dropzone
-      setOnboardingLoadingOverlay(true);
+        // Keep the 3D hidden while UI animates in — loading overlay takes over from dropzone
+        setOnboardingLoadingOverlay(true);
 
-      // Load the default model now that the "drop" happened
-      const { loadFromUrl } = await import("@/lib/modelLoader");
-      await loadFromUrl("/releases/3d-editor/3d_model.glb");
+        // Load the default model now that the "drop" happened
+        const { loadFromUrl } = await import("@/lib/modelLoader");
+        await loadFromUrl("/releases/3d-editor/3d_model.glb");
 
-      setShowOnboardingDropzone(false); // dropzone box fades out; loading overlay stays
-      setIsClicking(false);
-      await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+        setShowOnboardingDropzone(false); // dropzone box fades out; loading overlay stays
+        setIsClicking(false);
+        await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
 
-      // Wait for inspector to fully slide in (150ms ready delay + 350ms animation + buffer)
-      await new Promise(r => setTimeout(r, 550));
+        // Wait for inspector to fully slide in (150ms ready delay + 350ms animation + buffer)
+        await new Promise((r) => setTimeout(r, 550));
 
-      // Reveal the 3D — loading overlay fades out, bottom bar slides up simultaneously
-      setOnboardingLoadingOverlay(false);
+        // Reveal the 3D — loading overlay fades out, bottom bar slides up simultaneously
+        setOnboardingLoadingOverlay(false);
 
-      // Wait for materials to be extracted from the loaded model
-      await waitForMaterials();
-      await new Promise(r => setTimeout(r, 400));
-    }
-
-    // 1. Move to Material Section Toggle
-    const materialToggle = await waitForElement("section-material");
-    if (materialToggle) {
-      // Wait for the inspector panel slide-in animation to finish before reading position
-      await new Promise(r => setTimeout(r, 400));
-
-      const rect = materialToggle.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
-      await mouseControls.start({
-        x,
-        y,
-        transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
-      });
-
-      setIsClicking(true);
-      await mouseControls.start({ scale: 0.8, transition: { duration: 0.15 } });
-
-      // Read fresh state — closure values are stale since model loaded after tour started
-      const { materials, selectedMaterialId } = useStore.getState();
-      if (!selectedMaterialId && materials.length > 0) {
-        setSelectedMaterialId(materials[0].id);
+        // Wait for materials to be extracted from the loaded model
+        await waitForMaterials();
+        await new Promise((r) => setTimeout(r, 400));
       }
 
-      materialToggle.click();
-      await new Promise(r => setTimeout(r, 100));
-      setIsClicking(false);
-      await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+      // 1. Move to Material Section Toggle
+      const materialToggle = await waitForElement("section-material");
+      if (materialToggle) {
+        // Wait for the inspector panel slide-in animation to finish before reading position
+        await new Promise((r) => setTimeout(r, 400));
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    // 2. Change Metalness
-    const { materials, selectedMaterialId } = useStore.getState();
-    if (materials.length > 0) {
-      const matId = selectedMaterialId || materials[0].id;
-
-      const metalnessSlider = await waitForElement("slider-metalness");
-      if (metalnessSlider) {
-        const mat = materials.find(m => m.id === matId);
-        const initialMetalness = mat ? mat.metalness : 0.8;
-
-        const rect = metalnessSlider.getBoundingClientRect();
-        const startX = rect.left + rect.width * 0.8;
+        const rect = materialToggle.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
         const y = rect.top + rect.height / 2;
-        const endX = rect.left + rect.width * 0.1;
 
         await mouseControls.start({
-          x: startX,
+          x,
           y,
-          transition: { duration: 0.4, ease: "easeInOut" },
+          transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
         });
 
         setIsClicking(true);
-        await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
-
-        await animate(startX, endX, {
-          duration: 0.7,
-          ease: "easeInOut",
-          onUpdate: (latest) => {
-            const progress = (latest - startX) / (endX - startX);
-            const val = initialMetalness - progress * initialMetalness;
-            updateMaterial(matId, { metalness: val });
-            mouseControls.set({ x: latest });
-          }
+        await mouseControls.start({
+          scale: 0.8,
+          transition: { duration: 0.15 },
         });
 
-        await animate(endX, startX, {
-          duration: 0.7,
-          ease: "easeInOut",
-          onUpdate: (latest) => {
-            const progress = (latest - endX) / (startX - endX);
-            const val = progress * initialMetalness;
-            updateMaterial(matId, { metalness: val });
-            mouseControls.set({ x: latest });
-          }
-        });
+        // Read fresh state — closure values are stale since model loaded after tour started
+        const { materials, selectedMaterialId } = useStore.getState();
+        if (!selectedMaterialId && materials.length > 0) {
+          setSelectedMaterialId(materials[0].id);
+        }
 
+        materialToggle.click();
+        await new Promise((r) => setTimeout(r, 100));
         setIsClicking(false);
         await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
+
+      // 2. Change Metalness
+      const { materials, selectedMaterialId } = useStore.getState();
+      if (materials.length > 0) {
+        const matId = selectedMaterialId || materials[0].id;
+
+        const metalnessSlider = await waitForElement("slider-metalness");
+        if (metalnessSlider) {
+          const mat = materials.find((m) => m.id === matId);
+          const initialMetalness = mat ? mat.metalness : 0.8;
+
+          const rect = metalnessSlider.getBoundingClientRect();
+          const startX = rect.left + rect.width * 0.8;
+          const y = rect.top + rect.height / 2;
+          const endX = rect.left + rect.width * 0.1;
+
+          await mouseControls.start({
+            x: startX,
+            y,
+            transition: { duration: 0.4, ease: "easeInOut" },
+          });
+
+          setIsClicking(true);
+          await mouseControls.start({
+            scale: 0.9,
+            transition: { duration: 0.1 },
+          });
+
+          await animate(startX, endX, {
+            duration: 0.7,
+            ease: "easeInOut",
+            onUpdate: (latest) => {
+              const progress = (latest - startX) / (endX - startX);
+              const val = initialMetalness - progress * initialMetalness;
+              updateMaterial(matId, { metalness: val });
+              mouseControls.set({ x: latest });
+            },
+          });
+
+          await animate(endX, startX, {
+            duration: 0.7,
+            ease: "easeInOut",
+            onUpdate: (latest) => {
+              const progress = (latest - endX) / (startX - endX);
+              const val = progress * initialMetalness;
+              updateMaterial(matId, { metalness: val });
+              mouseControls.set({ x: latest });
+            },
+          });
+
+          setIsClicking(false);
+          await mouseControls.start({
+            scale: 1,
+            transition: { duration: 0.2 },
+          });
+        }
+      }
+
+      // 3. Turn Model
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const inspectorWidth = 320;
+      const centerX = (window.innerWidth - inspectorWidth) / 2;
+      const centerY = window.innerHeight / 2;
+
+      await mouseControls.start({
+        x: centerX,
+        y: centerY,
+        transition: { duration: 0.5, ease: "easeInOut" },
+      });
+
+      // Read fresh animation/transform state
+      const currentState = useStore.getState();
+      const initialAutoRotate = currentState.animation.autoRotate;
+      const initialRotation = [...currentState.transform.rotation] as [
+        number,
+        number,
+        number,
+      ];
+
+      setAnimation({ autoRotate: false });
+
+      setIsClicking(true);
+      await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
+
+      const dragDistance = 150;
+
+      await animate(centerX, centerX - dragDistance, {
+        duration: 0.6,
+        ease: [0.4, 0, 0.2, 1],
+        onUpdate: (latest) => {
+          const p = (latest - centerX) / -dragDistance;
+          const angle = (p * -Math.PI) / 2;
+          setTransform({
+            rotation: [
+              initialRotation[0],
+              initialRotation[1] + angle,
+              initialRotation[2],
+            ],
+          });
+          mouseControls.set({ x: latest });
+        },
+      });
+
+      await animate(centerX - dragDistance, centerX + dragDistance, {
+        duration: 0.9,
+        ease: "easeInOut",
+        onUpdate: (latest) => {
+          const p = (latest - (centerX - dragDistance)) / (dragDistance * 2);
+          const angle = -Math.PI / 2 + p * Math.PI;
+          setTransform({
+            rotation: [
+              initialRotation[0],
+              initialRotation[1] + angle,
+              initialRotation[2],
+            ],
+          });
+          mouseControls.set({ x: latest });
+        },
+      });
+
+      await animate(centerX + dragDistance, centerX, {
+        duration: 0.6,
+        ease: [0.4, 0, 0.2, 1],
+        onUpdate: (latest) => {
+          const p = (latest - (centerX + dragDistance)) / -dragDistance;
+          const angle = Math.PI / 2 - (p * Math.PI) / 2;
+          setTransform({
+            rotation: [
+              initialRotation[0],
+              initialRotation[1] + angle,
+              initialRotation[2],
+            ],
+          });
+          mouseControls.set({ x: latest });
+        },
+      });
+
+      setIsClicking(false);
+      await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+      setAnimation({ autoRotate: initialAutoRotate });
+
+      // Finish
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await mouseControls.start({
+        opacity: 0,
+        scale: 2,
+        transition: { duration: 0.6, ease: "easeInOut" },
+      });
+      setIsVisible(false);
+    } finally {
+      temporal.clear();
+      temporal.resume();
     }
 
-    // 3. Turn Model
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const inspectorWidth = 320;
-    const centerX = (window.innerWidth - inspectorWidth) / 2;
-    const centerY = window.innerHeight / 2;
-
-    await mouseControls.start({
-      x: centerX,
-      y: centerY,
-      transition: { duration: 0.5, ease: "easeInOut" },
-    });
-
-    // Read fresh animation/transform state
-    const currentState = useStore.getState();
-    const initialAutoRotate = currentState.animation.autoRotate;
-    const initialRotation = [...currentState.transform.rotation] as [number, number, number];
-
-    setAnimation({ autoRotate: false });
-
-    setIsClicking(true);
-    await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
-
-    const dragDistance = 150;
-
-    await animate(centerX, centerX - dragDistance, {
-      duration: 0.6,
-      ease: [0.4, 0, 0.2, 1],
-      onUpdate: (latest) => {
-        const p = (latest - centerX) / -dragDistance;
-        const angle = p * -Math.PI / 2;
-        setTransform({ rotation: [initialRotation[0], initialRotation[1] + angle, initialRotation[2]] });
-        mouseControls.set({ x: latest });
-      }
-    });
-
-    await animate(centerX - dragDistance, centerX + dragDistance, {
-      duration: 0.9,
-      ease: "easeInOut",
-      onUpdate: (latest) => {
-        const p = (latest - (centerX - dragDistance)) / (dragDistance * 2);
-        const angle = (-Math.PI / 2) + p * Math.PI;
-        setTransform({ rotation: [initialRotation[0], initialRotation[1] + angle, initialRotation[2]] });
-        mouseControls.set({ x: latest });
-      }
-    });
-
-    await animate(centerX + dragDistance, centerX, {
-      duration: 0.6,
-      ease: [0.4, 0, 0.2, 1],
-      onUpdate: (latest) => {
-        const p = (latest - (centerX + dragDistance)) / -dragDistance;
-        const angle = (Math.PI / 2) - p * Math.PI / 2;
-        setTransform({ rotation: [initialRotation[0], initialRotation[1] + angle, initialRotation[2]] });
-        mouseControls.set({ x: latest });
-      }
-    });
-
-    setIsClicking(false);
-    await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
-    setAnimation({ autoRotate: initialAutoRotate });
-
-    // Finish
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await mouseControls.start({
-      opacity: 0,
-      scale: 2,
-      transition: { duration: 0.6, ease: "easeInOut" }
-    });
-    setIsVisible(false);
     setIsOnboarding(false);
   };
 
@@ -296,7 +347,7 @@ export default function OnboardingTour() {
             <motion.div
               animate={{
                 scale: isClicking ? [1, 1.5, 1.2] : 1,
-                opacity: isClicking ? 0.6 : 0.4
+                opacity: isClicking ? 0.6 : 0.4,
               }}
               className="absolute inset-0 bg-primary rounded-full blur-2xl"
             />
@@ -306,7 +357,7 @@ export default function OnboardingTour() {
                 scale: isClicking ? 0.5 : 1,
                 boxShadow: isClicking
                   ? "0 0 20px rgba(56,222,117,0.8)"
-                  : "0 0 10px rgba(56,222,117,0.4)"
+                  : "0 0 10px rgba(56,222,117,0.4)",
               }}
               className="size-10 bg-primary/80 rounded-full blur-[2px] border border-white/40 backdrop-blur-sm"
             />
