@@ -33,6 +33,7 @@ function Model() {
     (state) => state.setSelectedMaterialId,
   );
   const setSelectedMeshName = useStore((state) => state.setSelectedMeshName);
+  const setModelViewReady = useStore((state) => state.setModelViewReady);
   const groupRef = useRef<THREE.Group>(null);
 
   // Initialize materials once per model
@@ -51,7 +52,8 @@ function Model() {
       temporal.clear();
       temporal.resume();
     }
-  }, [localModel, setMaterialSnapshot]);
+    setModelViewReady(true);
+  }, [localModel, setMaterialSnapshot, setModelViewReady]);
 
   // Sync transform
   useEffect(() => {

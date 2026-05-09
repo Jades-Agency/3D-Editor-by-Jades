@@ -10,6 +10,7 @@ let currentLocalModel: THREE.Group<THREE.Object3DEventMap> | null = null;
 
 const resetModelState = () => {
   const store = useStore.getState();
+  store.setModelViewReady(false);
   store.setSelectedMeshName(null);
   store.setSelectedMaterialId(null);
   store.clearMaterialSnapshot();
