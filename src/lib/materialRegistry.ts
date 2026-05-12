@@ -376,28 +376,37 @@ export const applyMaterialOverrides = (
   });
 };
 
+const disposeMaterial = (material: THREE.Material) => {
+  // Dispose every texture slot on the material
+  (Object.values(material) as unknown[]).forEach((value) => {
+    if (value instanceof THREE.Texture) {
+      value.dispose();
+    }
+  });
+  material.dispose();
+};
+
 export const disposeScene = (scene: THREE.Object3D) => {
   scene.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      if (child.geometry) {
-        child.geometry.dispose();
-      }
+    if (child instanceof THREE.Mesh || child instanceof THREE.SkinnedMesh) {
+      child.geometry?.dispose();
 
       const materials = Array.isArray(child.material)
         ? child.material
         : [child.material];
 
-      materials.forEach((material) => {
-        if (material instanceof THREE.Material) {
-          // Dispose textures
-          Object.values(material).forEach((value) => {
-            if (value instanceof THREE.Texture) {
-              value.dispose();
-            }
-          });
-          material.dispose();
-        }
+      materials.forEach((m) => {
+        if (m instanceof THREE.Material) disposeMaterial(m);
       });
+    }
+
+    // Dispose shadow maps for lights that have them
+    if (
+      child instanceof THREE.SpotLight ||
+      child instanceof THREE.DirectionalLight ||
+      child instanceof THREE.PointLight
+    ) {
+      child.shadow?.map?.dispose();
     }
   });
 };

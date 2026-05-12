@@ -5,6 +5,7 @@ import { EditorView, basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { generateFormattedCode } from "@/lib/codeGen";
+import { useStore } from "@/lib/store";
 import { Copy, Check, X } from "lucide-react";
 import { tags } from "@lezer/highlight";
 
@@ -12,7 +13,8 @@ interface CodeOutputProps {
   onClose: () => void;
 }
 
-const mutedHighlightStyle = HighlightStyle.define([
+/** Syntax colors for dark panel (Palenight-style, readable on dark gray). */
+const darkSyntaxHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: "#c792ea", fontWeight: "500" },
   { tag: tags.operator, color: "#89ddff" },
   { tag: tags.special(tags.variableName), color: "#82aaff" },
@@ -28,10 +30,27 @@ const mutedHighlightStyle = HighlightStyle.define([
   { tag: tags.meta, color: "#89ddff" },
 ]);
 
+/** Deeper tones for light backgrounds (panel ~ white / off-white). */
+const lightSyntaxHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: "#6d28d9", fontWeight: "600" },
+  { tag: tags.operator, color: "#0369a1" },
+  { tag: tags.special(tags.variableName), color: "#1d4ed8" },
+  { tag: tags.typeName, color: "#a16207" },
+  { tag: tags.atom, color: "#c2410c" },
+  { tag: tags.number, color: "#c2410c" },
+  { tag: tags.definition(tags.variableName), color: "#1d4ed8" },
+  { tag: tags.string, color: "#15803d" },
+  { tag: tags.special(tags.string), color: "#15803d" },
+  { tag: tags.comment, color: "#64748b", fontStyle: "italic" },
+  { tag: tags.variableName, color: "#0e7490" },
+  { tag: tags.function(tags.variableName), color: "#1e40af" },
+  { tag: tags.meta, color: "#0f766e" },
+]);
+
 const editorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    fontSize: "13px",
+    fontSize: "12px",
     background: "var(--panel-bg)",
     color: "var(--foreground)",
   },
@@ -61,12 +80,10 @@ const editorTheme = EditorView.theme({
   ".cm-line": {
     padding: "0 4px",
   },
-  ".cm-scroller": {
-    padding: "16px 0",
-  },
 });
 
 export default function CodeOutput({ onClose }: CodeOutputProps) {
+  const theme = useStore((s) => s.theme);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const [copied, setCopied] = useState(false);
@@ -81,13 +98,16 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
         viewRef.current.destroy();
       }
 
+      const syntaxStyle =
+        theme === "dark" ? darkSyntaxHighlightStyle : lightSyntaxHighlightStyle;
+
       const view = new EditorView({
         doc: code,
         extensions: [
           basicSetup,
           javascript(),
           editorTheme,
-          syntaxHighlighting(mutedHighlightStyle),
+          syntaxHighlighting(syntaxStyle),
           EditorView.editable.of(false),
           EditorView.theme({
             "&": { height: "100%", fontSize: "13px" },
@@ -105,7 +125,7 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
     return () => {
       viewRef.current?.destroy();
     };
-  }, []);
+  }, [theme]);
 
   const handleCopy = async () => {
     if (!viewRef.current) return;
@@ -116,16 +136,16 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-panel-bg rounded-sm border border-panel-border">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-panel-border shrink-0">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+    <div className="h-full flex flex-col bg-panel-bg rounded-lg border border-panel-border">
+      <div className="flex items-center justify-between px-3 py-2 shrink-0">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
           Generated Code
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleCopy}
-            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-white/10"
-            title="Copy code"
+            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-black/5 dark:hover:bg-white/10"
+            title="Export code"
           >
             {copied ? (
               <Check className="w-4 h-4 text-primary" />
@@ -135,7 +155,7 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-white/10"
+            className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-black/5 dark:hover:bg-white/10"
             title="Close"
           >
             <X className="w-4 h-4" />

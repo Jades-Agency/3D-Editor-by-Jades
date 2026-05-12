@@ -1,28 +1,29 @@
 "use client";
 
 import { useStore, type EnvironmentPreset } from "./store";
+import { STORE_DEFAULTS } from "./constants";
 
 export const serializeStateToUrl = (): string => {
   const store = useStore.getState();
   const params = new URLSearchParams();
 
-  if (store.environment !== "city") {
+  if (store.environment !== STORE_DEFAULTS.environment) {
     params.set("env", store.environment);
   }
 
-  if (store.transform.scale !== 1) {
+  if (store.transform.scale !== STORE_DEFAULTS.transformScale) {
     params.set("scale", store.transform.scale.toString());
   }
 
-  if (store.camera.fov !== 45) {
+  if (store.camera.fov !== STORE_DEFAULTS.cameraFov) {
     params.set("fov", store.camera.fov.toString());
   }
 
-  if (store.postProcessing.bloom.intensity !== 1.5) {
+  if (store.postProcessing.bloom.intensity !== STORE_DEFAULTS.bloomIntensity) {
     params.set("bloom", store.postProcessing.bloom.intensity.toString());
   }
 
-  if (store.postProcessing.noise.opacity !== 0.05) {
+  if (store.postProcessing.noise.opacity !== STORE_DEFAULTS.noiseOpacity) {
     params.set("noise", store.postProcessing.noise.opacity.toString());
   }
 

@@ -2,11 +2,14 @@
 
 import { useState, useCallback, useRef } from "react";
 import { loadFile } from "@/lib/modelLoader";
+import { isValidModelFile, isModelFileTooLarge } from "@/lib/utils";
+import { MAX_MODEL_FILE_SIZE_MB } from "@/lib/constants";
 import { Box, Loader2 } from "lucide-react";
 
 export default function DropZone() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sizeError, setSizeError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -22,11 +25,14 @@ export default function DropZone() {
   }, []);
 
   const handleModelFile = useCallback(async (file: File) => {
-    const name = file.name.toLowerCase();
-    if (!name.endsWith(".glb") && !name.endsWith(".gltf")) {
+    if (!isValidModelFile(file)) return;
+    if (isModelFileTooLarge(file)) {
+      setSizeError(true);
+      setTimeout(() => setSizeError(false), 4000);
       return;
     }
 
+    setSizeError(false);
     setIsLoading(true);
     try {
       await loadFile(file);
@@ -70,13 +76,12 @@ export default function DropZone() {
           transition-all duration-200
           ${
             isDragging
-              ? "border-[var(--primary)] scale-105"
-              : "border-[var(--panel-border)] hover:border-[var(--text-secondary)]"
+              ? "border-primary scale-105"
+              : "border-panel-border hover:border-text-secondary"
           }
         `}
         style={{
           background: isDragging ? "rgba(21, 128, 61, 0.1)" : "var(--panel-bg)",
-          borderColor: isDragging ? "var(--primary)" : "var(--panel-border)",
         }}
       >
         <input
@@ -88,25 +93,24 @@ export default function DropZone() {
         />
 
         {isLoading ? (
-          <Loader2
-            className="w-12 h-12 animate-spin"
-            style={{ color: "var(--primary)" }}
-          />
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
         ) : (
           <>
             <div className="flex flex-1 flex-col items-center justify-center gap-3">
-              <Box
-                className="w-14 h-14"
-                style={{ color: isDragging ? "var(--primary)" : "var(--primary)" }}
-                strokeWidth={1.25}
-              />
-              <p className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
+              <Box className="w-14 h-14 text-primary" strokeWidth={1.25} />
+              <p className="text-base font-semibold text-foreground">
                 Drop 3D model
               </p>
             </div>
-            <p className="pb-5 text-xs" style={{ color: "var(--text-muted)" }}>
-              .glb or .gltf file
-            </p>
+            {sizeError ? (
+              <p className="pb-5 text-xs text-red-500">
+                File exceeds {MAX_MODEL_FILE_SIZE_MB} MB limit.
+              </p>
+            ) : (
+              <p className="pb-5 text-xs text-muted">
+                .glb or .gltf file
+              </p>
+            )}
           </>
         )}
       </div>

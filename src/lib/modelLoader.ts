@@ -20,13 +20,22 @@ const resetModelState = () => {
 
 export const loadFromArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
   const loader = new GLTFLoader();
-  const gltf = await loader.parseAsync(arrayBuffer, "");
+
+  let gltf: Awaited<ReturnType<typeof loader.parseAsync>>;
+  try {
+    gltf = await loader.parseAsync(arrayBuffer, "");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to parse model.";
+    useStore.getState().setModelError(message);
+    return;
+  }
 
   if (currentLocalModel) {
     disposeScene(currentLocalModel);
   }
 
   currentLocalModel = gltf.scene;
+  useStore.getState().setModelError(null);
 
   resetModelState();
   useStore.getState().setLocalModel(gltf.scene);
@@ -36,13 +45,22 @@ export const loadFromArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
 
 export const loadFromUrl = async (url: string) => {
   const loader = new GLTFLoader();
-  const gltf = await loader.loadAsync(url);
+
+  let gltf: Awaited<ReturnType<typeof loader.loadAsync>>;
+  try {
+    gltf = await loader.loadAsync(url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load model.";
+    useStore.getState().setModelError(message);
+    return;
+  }
 
   if (currentLocalModel) {
     disposeScene(currentLocalModel);
   }
 
   currentLocalModel = gltf.scene;
+  useStore.getState().setModelError(null);
 
   resetModelState();
   useStore.getState().setLocalModel(gltf.scene);
@@ -61,13 +79,12 @@ export const loadFile = async (file: File): Promise<void> => {
 export const loadFromCache = async (): Promise<boolean> => {
   const { getCachedModel } = await import("./modelCache");
   const cached = await getCachedModel();
-  
+
   if (cached) {
     try {
       await loadFromArrayBuffer(cached.arrayBuffer);
       return true;
-    } catch (error) {
-      console.error("Failed to load model from cache:", error);
+    } catch {
       return false;
     }
   }
@@ -82,7 +99,4 @@ export const cleanup = async () => {
 
   resetModelState();
   useStore.getState().setLocalModel(null);
-  
-  const { clearCachedModel } = await import("./modelCache");
-  await clearCachedModel();
 };

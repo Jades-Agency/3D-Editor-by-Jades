@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas as R3FCanvas, type ThreeEvent } from "@react-three/fiber";
+import { Canvas as R3FCanvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
@@ -8,11 +8,13 @@ import {
 } from "@react-three/drei";
 import { EffectComposer, Bloom, Noise, ToneMapping } from "@react-three/postprocessing";
 import { Suspense, useEffect, useRef } from "react";
+
 import { useStore } from "@/lib/store";
 import {
   applyMaterialOverrides,
   prepareSceneAndSnapshot,
 } from "@/lib/materialRegistry";
+import { MODEL_PATH } from "@/lib/constants";
 import * as THREE from "three";
 
 const CANVAS_GL_CONFIG = Object.freeze({
@@ -104,6 +106,33 @@ function PlaceholderModel() {
   return null;
 }
 
+// Keeps camera aspect ratio in sync with the container size on every frame so
+// panel open/close animations don't cause projection distortion.
+function SizeSync() {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+
+  useFrame(() => {
+    // R3F wraps the canvas in: canvas → inner-div → outer-div (the measurable container)
+    const container = gl.domElement.parentElement?.parentElement;
+    if (!container) return;
+
+    const { width, height } = container.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return;
+
+    const newAspect = width / height;
+    if (camera instanceof THREE.PerspectiveCamera && !camera.manual) {
+      if (Math.abs(camera.aspect - newAspect) > 0.001) {
+        camera.aspect = newAspect;
+        camera.updateProjectionMatrix();
+        gl.setSize(width, height, false);
+      }
+    }
+  });
+
+  return null;
+}
+
 function Lights() {
   const lights = useStore((state) => state.lights);
 
@@ -172,6 +201,16 @@ export default function Canvas() {
   const environment = useStore((state) => state.environment);
   const localModel = useStore((state) => state.localModel);
   const animation = useStore((state) => state.animation);
+  const mountedRef = useRef(true);
+
+  // Dispose Three.js resources when the Canvas unmounts
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      import("@/lib/modelLoader").then(({ cleanup }) => cleanup());
+    };
+  }, []);
 
   useEffect(() => {
     const restore = async () => {
@@ -180,13 +219,13 @@ export default function Canvas() {
 
       // On first visit, skip auto-load — the onboarding tour handles it
       if (!localStorage.getItem("has-seen-onboarding")) return;
+      if (!mountedRef.current) return;
 
       const { loadFromCache, loadFromUrl } = await import("@/lib/modelLoader");
       const loaded = await loadFromCache();
 
-      if (!loaded) {
-        console.info("No cached model found. Loading default 3d_model.glb...");
-        await loadFromUrl("/releases/3d-editor/3d_model.glb");
+      if (mountedRef.current && !loaded) {
+        await loadFromUrl(MODEL_PATH);
       }
     };
     restore();
@@ -203,12 +242,21 @@ export default function Canvas() {
         gl.outputColorSpace = THREE.SRGBColorSpace;
 
         const canvas = gl.domElement;
+
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        const _setSize = gl.setSize.bind(gl);
+        gl.setSize = (width: number, height: number, _updateStyle?: boolean) => {
+          _setSize(width, height, false);
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+        };
+
         const handleContextLost = (e: Event) => {
           e.preventDefault();
-          console.warn("WebGL Context Lost. Attempting to recover...");
         };
         const handleContextRestored = async () => {
-          console.info("WebGL Context Restored. Reloading model...");
+          if (!mountedRef.current) return;
           const { loadFromCache } = await import("@/lib/modelLoader");
           await loadFromCache();
         };
@@ -229,6 +277,7 @@ export default function Canvas() {
         };
       }}
     >
+      <SizeSync />
       <PerspectiveCamera
         makeDefault
         position={camera.position}

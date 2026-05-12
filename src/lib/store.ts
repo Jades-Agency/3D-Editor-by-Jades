@@ -2,7 +2,29 @@
 
 import * as THREE from "three";
 import { create, useStore as useZustandStore } from "zustand";
-import { temporal } from "zundo";
+import { temporal, type TemporalState } from "zundo";
+import type { StoreApi } from "zustand";
+
+import { EDITOR_THEME_STORAGE_KEY } from "./constants";
+
+export function getPersistedEditorTheme(): "dark" | "light" | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(EDITOR_THEME_STORAGE_KEY);
+    if (v === "light" || v === "dark") return v;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistEditorTheme(theme: "dark" | "light") {
+  try {
+    localStorage.setItem(EDITOR_THEME_STORAGE_KEY, theme);
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 export type EnvironmentPreset =
   | "city"
@@ -139,12 +161,15 @@ export interface ModelStore {
   onboardingDragOver: boolean;
   onboardingLoadingOverlay: boolean;
   modelViewReady: boolean;
+  modelError: string | null;
   setLocalModel: (model: THREE.Group<THREE.Object3DEventMap> | null) => void;
+  setModelError: (error: string | null) => void;
   setSelectedMeshName: (name: string | null) => void;
   setSelectedMaterialId: (id: string | null) => void;
   setMaterialSnapshot: (snapshot: MaterialSnapshot) => void;
   clearMaterialSnapshot: () => void;
   updateMaterial: (id: string, updates: Partial<MaterialOverride>) => void;
+  resetMaterial: (id: string) => void;
   setLights: (lights: LightConfig[]) => void;
   setTransform: (transform: Partial<Transform>) => void;
   setEnvironment: (env: EnvironmentPreset) => void;
@@ -213,7 +238,9 @@ export const useStore = create<ModelStore>()(
       onboardingDragOver: false,
       onboardingLoadingOverlay: false,
       modelViewReady: false,
+      modelError: null,
       setLocalModel: (model) => set({ localModel: model }),
+      setModelError: (error) => set({ modelError: error }),
       setSelectedMeshName: (name) => set({ selectedMeshName: name }),
       setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
       setMaterialSnapshot: ({ materials, defaultMaterialId }) =>
@@ -232,6 +259,40 @@ export const useStore = create<ModelStore>()(
             material.id === id ? { ...material, ...updates } : material,
           ),
         })),
+      resetMaterial: (id) =>
+        set((state) => ({
+          materials: state.materials.map((m) => {
+            if (m.id !== id) return m;
+            return {
+              ...m,
+              color: m.defaultColor,
+              roughness: m.defaultRoughness,
+              metalness: m.defaultMetalness,
+              emissive: m.defaultEmissive,
+              emissiveIntensity: m.defaultEmissiveIntensity,
+              envMapIntensity: m.defaultEnvMapIntensity,
+              transmission: m.defaultTransmission,
+              ior: m.defaultIor,
+              reflectivity: m.defaultReflectivity,
+              thickness: m.defaultThickness,
+              attenuationColor: m.defaultAttenuationColor,
+              attenuationDistance: m.defaultAttenuationDistance,
+              clearcoat: m.defaultClearcoat,
+              clearcoatRoughness: m.defaultClearcoatRoughness,
+              sheen: m.defaultSheen,
+              sheenColor: m.defaultSheenColor,
+              sheenRoughness: m.defaultSheenRoughness,
+              dispersion: m.defaultDispersion,
+              iridescence: m.defaultIridescence,
+              iridescenceIOR: m.defaultIridescenceIOR,
+              anisotropy: m.defaultAnisotropy,
+              opacity: m.defaultOpacity,
+              transparent: m.defaultTransparent,
+              side: m.defaultSide,
+              wireframe: m.defaultWireframe,
+            };
+          }),
+        })),
       setLights: (lights) => set({ lights }),
       setTransform: (transform) =>
         set((state) => ({ transform: { ...state.transform, ...transform } })),
@@ -244,8 +305,16 @@ export const useStore = create<ModelStore>()(
         })),
       setAnimation: (config) =>
         set((state) => ({ animation: { ...state.animation, ...config } })),
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+      setTheme: (theme) => {
+        persistEditorTheme(theme);
+        set({ theme });
+      },
+      toggleTheme: () =>
+        set((state) => {
+          const next = state.theme === "dark" ? "light" : "dark";
+          persistEditorTheme(next);
+          return { theme: next };
+        }),
       setIsOnboarding: (val) => set({ isOnboarding: val }),
       setShowOnboardingDropzone: (val) => set({ showOnboardingDropzone: val }),
       setOnboardingDragOver: (val) => set({ onboardingDragOver: val }),
@@ -274,10 +343,17 @@ export const useStore = create<ModelStore>()(
   ),
 );
 
+/** The slice of store state tracked by zundo's undo/redo history. */
+export type PartializedStore = Pick<
+  ModelStore,
+  "materials" | "lights" | "transform" | "environment" | "camera" | "postProcessing" | "animation"
+>;
+
 export const useTemporalStore = <T>(
-  selector: (state: unknown) => T,
-  equalityFn?: (a: T, b: T) => boolean,
+  selector: (state: TemporalState<PartializedStore>) => T,
 ) => {
-  // @ts-expect-error - temporal is injected by zundo middleware
-  return useZustandStore(useStore.temporal, selector, equalityFn);
+  return useZustandStore(
+    useStore.temporal as StoreApi<TemporalState<PartializedStore>>,
+    selector,
+  );
 };

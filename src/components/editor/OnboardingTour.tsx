@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { motion, useAnimation, AnimatePresence, animate } from "framer-motion";
 import { useStore } from "@/lib/store";
+import { MODEL_PATH } from "@/lib/constants";
 
 export default function OnboardingTour() {
   const [isVisible, setIsVisible] = useState(false);
@@ -27,35 +28,25 @@ export default function OnboardingTour() {
     }
   }, []);
 
-  const waitForElement = (
-    id: string,
-    timeout = 5000,
-  ): Promise<HTMLElement | null> => {
+  const waitForElement = (id: string, timeout = 5000): Promise<HTMLElement | null> => {
     return new Promise((resolve) => {
-      const startTime = Date.now();
+      const start = Date.now();
       const check = () => {
         const el = document.getElementById(id);
-        if (el) {
-          resolve(el);
-        } else if (Date.now() - startTime > timeout) {
-          resolve(null);
-        } else {
-          setTimeout(check, 100);
-        }
+        if (el) resolve(el);
+        else if (Date.now() - start > timeout) resolve(null);
+        else setTimeout(check, 100);
       };
       check();
     });
   };
 
-  const waitForModelViewReady = (timeoutMs = 30_000): Promise<void> => {
+  const waitForModelViewReady = (timeout = 30_000): Promise<void> => {
     return new Promise((resolve) => {
       const start = Date.now();
-      const check = setInterval(() => {
-        if (useStore.getState().modelViewReady) {
-          clearInterval(check);
-          resolve();
-        } else if (Date.now() - start > timeoutMs) {
-          clearInterval(check);
+      const interval = setInterval(() => {
+        if (useStore.getState().modelViewReady || Date.now() - start > timeout) {
+          clearInterval(interval);
           resolve();
         }
       }, 100);
@@ -130,7 +121,7 @@ export default function OnboardingTour() {
 
         // Load the default model now that the "drop" happened
         const { loadFromUrl } = await import("@/lib/modelLoader");
-        await loadFromUrl("/releases/3d-editor/3d_model.glb");
+        await loadFromUrl(MODEL_PATH);
 
         setShowOnboardingDropzone(false); // dropzone box fades out; loading overlay stays
         setIsClicking(false);

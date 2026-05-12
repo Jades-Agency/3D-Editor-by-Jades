@@ -2,6 +2,7 @@
 
 import { useStore } from "./store";
 import prettier from "prettier";
+import { MODEL_PATH } from "./constants";
 
 const generateCode = (): string => {
   const store = useStore.getState();
@@ -42,7 +43,6 @@ const generateCode = (): string => {
     ? `
 // === INSTRUCTIONS ===
 // 1. Place your model file in the public folder (e.g., public/3d_model.glb)
-//    Note: Assets are served under the basePath /releases/3d-editor/
 // 2. Update the path below to match your model filename
 `
     : "";
@@ -54,7 +54,7 @@ const generateCode = (): string => {
   const modelComponent = hasModel
     ? `
 function Model() {
-  const { scene } = useGLTF('/releases/3d-editor/3d_model.glb');
+  const { scene } = useGLTF('${MODEL_PATH}');
   return <primitive object={scene} />;
 }`
     : "";
