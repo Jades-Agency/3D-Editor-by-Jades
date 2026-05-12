@@ -66,7 +66,7 @@ export default function InspectorPanel() {
         {selectedMaterialId && (
           <button
             onClick={() => resetMaterial(selectedMaterialId)}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
             title="Reset Material"
           >
             <RotateCcw className="size-4" />
@@ -75,7 +75,7 @@ export default function InspectorPanel() {
         )}
         <motion.button
           onClick={handleCopyCode}
-          className="flex-1 flex items-center justify-between rounded-sm bg-primary px-2.5 py-1.5 text-[14px] font-medium text-black hover:bg-primary/90 transition-colors overflow-hidden"
+          className="flex-1 flex items-center justify-between rounded-md bg-primary px-2.5 py-1.5 text-[14px] font-medium text-black hover:bg-primary/90 transition-colors overflow-hidden"
         >
           <AnimatePresence mode="wait" initial={false}>
             {copied ? (

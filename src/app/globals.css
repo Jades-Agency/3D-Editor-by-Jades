@@ -43,6 +43,7 @@
 
 * {
   box-sizing: border-box;
+  transition: background-color 1s ease, color 1s ease, border-color 1s ease, fill 1s ease;
 }
 
 html,
