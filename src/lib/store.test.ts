@@ -5,6 +5,7 @@ vi.mock("three", () => ({
   Group: class {},
 }));
 
+import { EDITOR_THEME_STORAGE_KEY } from "./constants";
 import { useStore } from "./store";
 
 describe("store — material actions", () => {
@@ -162,11 +163,17 @@ describe("store — material actions", () => {
 });
 
 describe("store — toggle theme", () => {
+  beforeEach(() => {
+    localStorage.removeItem(EDITOR_THEME_STORAGE_KEY);
+  });
+
   it("toggles between dark and light", () => {
     useStore.setState({ theme: "dark" });
     useStore.getState().toggleTheme();
     expect(useStore.getState().theme).toBe("light");
+    expect(localStorage.getItem(EDITOR_THEME_STORAGE_KEY)).toBe("light");
     useStore.getState().toggleTheme();
     expect(useStore.getState().theme).toBe("dark");
+    expect(localStorage.getItem(EDITOR_THEME_STORAGE_KEY)).toBe("dark");
   });
 });

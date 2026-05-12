@@ -4,6 +4,8 @@ export const ACCEPTED_MODEL_EXTENSIONS = [".glb", ".gltf"] as const;
 
 export const MAX_MODEL_FILE_SIZE_MB = 100;
 
+export const EDITOR_THEME_STORAGE_KEY = "three-viewer-theme";
+
 /** Store default values — kept here so urlSync and other consumers stay in sync with the store. */
 export const STORE_DEFAULTS = {
   environment: "forest",

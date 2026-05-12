@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useLayoutEffect, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { loadStateFromUrl } from "@/lib/urlSync";
 import { isValidModelFile } from "@/lib/utils";
 import { Box } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, getPersistedEditorTheme } from "@/lib/store";
 import OnboardingTour from "@/components/editor/OnboardingTour";
 import Spinner from "@/components/ui/Spinner";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -50,8 +50,10 @@ export default function EditorPage() {
     }
   }, [showOnboardingDropzone]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     loadStateFromUrl();
+    const persisted = getPersistedEditorTheme();
+    if (persisted) useStore.setState({ theme: persisted });
     setIsInitializing(false);
   }, []);
 
@@ -104,7 +106,7 @@ export default function EditorPage() {
             <motion.div
               key="code-panel"
               initial={{ width: 0 }}
-              animate={{ width: "auto", transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } }}
+              animate={{ width: "33.5rem", transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } }}
               exit={{ width: 0, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
               className="relative h-full overflow-hidden shrink-0"
             >
@@ -190,7 +192,7 @@ export default function EditorPage() {
             <motion.div
               key="inspector"
               initial={{ width: 0 }}
-              animate={{ width: "auto", transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } }}
+              animate={{ width: "21rem", transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } }}
               exit={{ width: 0, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
               className="relative h-full overflow-hidden shrink-0"
             >

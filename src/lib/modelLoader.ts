@@ -79,7 +79,7 @@ export const loadFile = async (file: File): Promise<void> => {
 export const loadFromCache = async (): Promise<boolean> => {
   const { getCachedModel } = await import("./modelCache");
   const cached = await getCachedModel();
-  
+
   if (cached) {
     try {
       await loadFromArrayBuffer(cached.arrayBuffer);
@@ -99,7 +99,4 @@ export const cleanup = async () => {
 
   resetModelState();
   useStore.getState().setLocalModel(null);
-  
-  const { clearCachedModel } = await import("./modelCache");
-  await clearCachedModel();
 };

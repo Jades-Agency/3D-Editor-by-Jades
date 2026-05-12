@@ -43,7 +43,6 @@ const generateCode = (): string => {
     ? `
 // === INSTRUCTIONS ===
 // 1. Place your model file in the public folder (e.g., public/3d_model.glb)
-//    Note: Assets are served under the basePath /releases/3d-editor/
 // 2. Update the path below to match your model filename
 `
     : "";

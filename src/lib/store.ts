@@ -5,6 +5,27 @@ import { create, useStore as useZustandStore } from "zustand";
 import { temporal, type TemporalState } from "zundo";
 import type { StoreApi } from "zustand";
 
+import { EDITOR_THEME_STORAGE_KEY } from "./constants";
+
+export function getPersistedEditorTheme(): "dark" | "light" | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(EDITOR_THEME_STORAGE_KEY);
+    if (v === "light" || v === "dark") return v;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistEditorTheme(theme: "dark" | "light") {
+  try {
+    localStorage.setItem(EDITOR_THEME_STORAGE_KEY, theme);
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 export type EnvironmentPreset =
   | "city"
   | "sunset"
@@ -284,8 +305,16 @@ export const useStore = create<ModelStore>()(
         })),
       setAnimation: (config) =>
         set((state) => ({ animation: { ...state.animation, ...config } })),
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+      setTheme: (theme) => {
+        persistEditorTheme(theme);
+        set({ theme });
+      },
+      toggleTheme: () =>
+        set((state) => {
+          const next = state.theme === "dark" ? "light" : "dark";
+          persistEditorTheme(next);
+          return { theme: next };
+        }),
       setIsOnboarding: (val) => set({ isOnboarding: val }),
       setShowOnboardingDropzone: (val) => set({ showOnboardingDropzone: val }),
       setOnboardingDragOver: (val) => set({ onboardingDragOver: val }),

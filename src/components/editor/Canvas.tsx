@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas as R3FCanvas, type ThreeEvent } from "@react-three/fiber";
+import { Canvas as R3FCanvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
@@ -106,6 +106,33 @@ function PlaceholderModel() {
   return null;
 }
 
+// Keeps camera aspect ratio in sync with the container size on every frame so
+// panel open/close animations don't cause projection distortion.
+function SizeSync() {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+
+  useFrame(() => {
+    // R3F wraps the canvas in: canvas → inner-div → outer-div (the measurable container)
+    const container = gl.domElement.parentElement?.parentElement;
+    if (!container) return;
+
+    const { width, height } = container.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return;
+
+    const newAspect = width / height;
+    if (camera instanceof THREE.PerspectiveCamera && !camera.manual) {
+      if (Math.abs(camera.aspect - newAspect) > 0.001) {
+        camera.aspect = newAspect;
+        camera.updateProjectionMatrix();
+        gl.setSize(width, height, false);
+      }
+    }
+  });
+
+  return null;
+}
+
 function Lights() {
   const lights = useStore((state) => state.lights);
 
@@ -178,6 +205,7 @@ export default function Canvas() {
 
   // Dispose Three.js resources when the Canvas unmounts
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       import("@/lib/modelLoader").then(({ cleanup }) => cleanup());
@@ -214,6 +242,16 @@ export default function Canvas() {
         gl.outputColorSpace = THREE.SRGBColorSpace;
 
         const canvas = gl.domElement;
+
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        const _setSize = gl.setSize.bind(gl);
+        gl.setSize = (width: number, height: number, _updateStyle?: boolean) => {
+          _setSize(width, height, false);
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+        };
+
         const handleContextLost = (e: Event) => {
           e.preventDefault();
         };
@@ -239,6 +277,7 @@ export default function Canvas() {
         };
       }}
     >
+      <SizeSync />
       <PerspectiveCamera
         makeDefault
         position={camera.position}
