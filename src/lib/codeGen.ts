@@ -2,6 +2,7 @@
 
 import { useStore } from "./store";
 import prettier from "prettier";
+import { MODEL_PATH } from "./constants";
 
 const generateCode = (): string => {
   const store = useStore.getState();
@@ -54,7 +55,7 @@ const generateCode = (): string => {
   const modelComponent = hasModel
     ? `
 function Model() {
-  const { scene } = useGLTF('/releases/3d-editor/3d_model.glb');
+  const { scene } = useGLTF('${MODEL_PATH}');
   return <primitive object={scene} />;
 }`
     : "";

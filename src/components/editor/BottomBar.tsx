@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { loadFile } from "@/lib/modelLoader";
+import { isValidModelFile } from "@/lib/utils";
 import { Upload, Loader2, Undo2, Redo2, Sun, Moon, Code } from "lucide-react";
 import { useTemporalStore, useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
@@ -32,8 +33,7 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
   }, [isInOnboardingMode, onboardingLoadingOverlay]);
 
   const { undo, redo, pastStates, futureStates } = useTemporalStore(
-    // @ts-expect-error - state type is complex from zundo
-    useShallow((state: { undo: () => void; redo: () => void; pastStates: unknown[]; futureStates: unknown[] }) => ({
+    useShallow((state) => ({
       undo: state.undo,
       redo: state.redo,
       pastStates: state.pastStates,
@@ -45,18 +45,12 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
   const canRedo = futureStates.length > 0;
 
   const handleUndo = useCallback(() => {
-    if (canUndo) {
-      console.log("Undo clicked. Steps remaining:", pastStates.length - 1);
-      undo();
-    }
-  }, [undo, canUndo, pastStates.length]);
+    if (canUndo) undo();
+  }, [undo, canUndo]);
 
   const handleRedo = useCallback(() => {
-    if (canRedo) {
-      console.log("Redo clicked. Steps remaining:", futureStates.length - 1);
-      redo();
-    }
-  }, [redo, canRedo, futureStates.length]);
+    if (canRedo) redo();
+  }, [redo, canRedo]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -79,10 +73,7 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
   }, [handleUndo, handleRedo]);
 
   const handleModelFile = useCallback(async (file: File) => {
-    const name = file.name.toLowerCase();
-    if (!name.endsWith(".glb") && !name.endsWith(".gltf")) {
-      return;
-    }
+    if (!isValidModelFile(file)) return;
 
     setIsLoading(true);
     try {

@@ -3,18 +3,17 @@
 import { useEffect, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { loadStateFromUrl } from "@/lib/urlSync";
+import { isValidModelFile } from "@/lib/utils";
 import { Box } from "lucide-react";
 import { useStore } from "@/lib/store";
 import OnboardingTour from "@/components/editor/OnboardingTour";
+import Spinner from "@/components/ui/Spinner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 
 const Canvas = dynamic(() => import("@/components/editor/Canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" />
-    </div>
-  ),
+  loading: () => <Spinner />,
 });
 
 const BottomBar = dynamic(() => import("@/components/editor/BottomBar"), {
@@ -82,8 +81,7 @@ export default function EditorPage() {
     setIsGlobalDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    const name = file?.name.toLowerCase();
-    if (file && (name?.endsWith(".glb") || name?.endsWith(".gltf"))) {
+    if (file && isValidModelFile(file)) {
       const { loadFile } = await import("@/lib/modelLoader");
       await loadFile(file);
     }
@@ -100,13 +98,7 @@ export default function EditorPage() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <Suspense
-        fallback={
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" />
-          </div>
-        }
-      >
+      <Suspense fallback={<Spinner />}>
         <AnimatePresence>
           {showCode && (
             <motion.div
@@ -125,7 +117,9 @@ export default function EditorPage() {
         </AnimatePresence>
 
         <div className="flex-1 relative w-0">
-          <Canvas />
+          <ErrorBoundary>
+            <Canvas />
+          </ErrorBoundary>
           <AnimatePresence>
             {onboardingLoadingOverlay && (
               <motion.div
@@ -134,7 +128,7 @@ export default function EditorPage() {
                 exit={{ opacity: 0, transition: { duration: 0.45, ease: "easeInOut" } }}
                 className="absolute inset-0 z-10 flex items-center justify-center bg-background pointer-events-none"
               >
-                <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" />
+                <div className="w-8 h-8 border-2 rounded-full animate-spin border-primary border-t-transparent" aria-label="Loading" />
               </motion.div>
             )}
           </AnimatePresence>
@@ -148,15 +142,6 @@ export default function EditorPage() {
                 className="fixed inset-0 z-99 flex items-center justify-center bg-background pointer-events-none"
               >
                 <div className="flex flex-col items-center gap-8">
-                  {/* <motion.p
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3, ease: "easeOut" } }}
-                    className="text-2xl font-semibold tracking-tight"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    Hey! Welcome to 3D Editor
-                  </motion.p> */}
-
                   <div
                     id="onboarding-dropzone-box"
                     className={`size-70 rounded-2xl border border-dashed flex flex-col items-center transition-all duration-200 bg-white/10 ${

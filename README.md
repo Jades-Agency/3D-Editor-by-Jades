@@ -1,151 +1,98 @@
-# Three-Viewer
+# three-viewer
 
-A real-time 3D model viewer and configurator built with React Three Fiber and Next.js. Upload GLB/GLTF models, tweak materials, lights, and post-processing effects, then export the scene as ready-to-use React Three Fiber code.
-
----
+An open-source 3D model configurator built with Next.js, React Three Fiber, and Zustand. Drop a `.glb` or `.gltf` file, tweak materials and lighting in real-time, then copy ready-to-use R3F code.
 
 ## Features
 
-- **Drag-and-drop model loading** — drop any GLB/GLTF file onto the canvas; the model is cached in IndexedDB and survives page reloads
-- **Material inspector** — select any mesh and edit 50+ physical material properties in real time (color, roughness, metalness, transmission, IOR, clearcoat, sheen, iridescence, anisotropy, dispersion, and more)
-- **Lighting controls** — configure ambient, spot, and point lights (color, intensity, position)
-- **Environment presets** — switch between 10 HDRI environments: city, sunset, dawn, night, warehouse, forest, apartment, studio, lobby, park
-- **Post-processing** — bloom (intensity, radius, luminance threshold/smoothing), film grain, and tone mapping exposure
-- **Transform controls** — position, rotation, scale, and auto-rotation with speed control
-- **Camera settings** — adjustable field of view and camera position
-- **Code export** — generates formatted, copy-ready React Three Fiber JSX from the current scene configuration
-- **Undo / redo** — full 100-step history with `Cmd+Z` / `Cmd+Shift+Z` (powered by Zundo)
-- **Shareable URLs** — non-default settings are serialized into URL search params (environment, scale, FOV, bloom, noise)
-- **Dark / light theme** — toggle with a button in the bottom bar
-- **Onboarding tour** — animated cursor walkthrough for first-time users
+- Drag-and-drop `.glb` / `.gltf` model loading with IndexedDB persistence
+- Real-time physically-based material editor (roughness, metalness, transmission, IOR, clearcoat, iridescence, sheen, dispersion, anisotropy)
+- Live lighting controls — ambient, spot, and point lights plus HDR environment presets
+- Post-processing: bloom, noise, tone mapping
+- Undo / redo with full history (Cmd+Z / Cmd+Shift+Z)
+- One-click R3F code export (formatted with Prettier)
+- URL-shareable state for environment, scale, FOV, and post-processing
+- Dark / light theme
 
----
+## Stack
 
-## Tech Stack
-
-| Layer | Library / Version |
+| Layer | Library |
 |---|---|
-| Framework | Next.js 16 (App Router, TypeScript) |
-| React | React 19 |
-| 3D rendering | Three.js 0.183, @react-three/fiber 9, @react-three/drei 10 |
-| Post-processing | @react-three/postprocessing 3, postprocessing 6 |
-| State | Zustand 5 + Zundo 2 (undo/redo middleware) |
-| Styling | Tailwind CSS 4 |
-| Animation | Framer Motion 12 |
-| Icons | Lucide React |
-| Code editor | CodeMirror 6 |
-| Code formatting | Prettier 3 |
-| URL state | nuqs 2 |
-| UI primitives | @radix-ui/react-popover |
+| Framework | Next.js 16 (App Router) |
+| 3D rendering | React Three Fiber + Three.js |
+| Post-processing | `@react-three/postprocessing` |
+| Helpers | `@react-three/drei` |
+| State | Zustand 5 + Zundo (undo/redo) |
+| Animations | Framer Motion |
+| Styling | Tailwind CSS v4 |
+| Code output | CodeMirror 6 + Prettier |
 
----
-
-## Getting Started
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-The app is served at:
+Open [http://localhost:3000](http://localhost:3000) — the editor is at `/editor`.
 
-```
-http://localhost:3000/releases/3d-editor
-```
+## Scripts
 
-> Note: the app uses `basePath: '/releases/3d-editor'` in `next.config.ts`, so the root path redirects there automatically.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests (Vitest) |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:ui` | Open Vitest UI |
 
-### Other commands
-
-```bash
-npm run build   # production build
-npm start       # serve production build
-npm run lint    # run ESLint
-```
-
----
-
-## Project Structure
+## Project structure
 
 ```
 src/
 ├── app/
-│   ├── layout.tsx          # Root layout (font, metadata)
-│   ├── page.tsx            # Redirects to /editor
-│   ├── fonts.ts            # Overused Grotesk font config
-│   ├── globals.css         # CSS custom properties, Tailwind theme tokens
-│   └── editor/
-│       └── page.tsx        # Main editor entry point
-│
+│   ├── editor/page.tsx        Main editor layout
+│   ├── layout.tsx             Root metadata
+│   └── globals.css            Tailwind + theme variables
 ├── components/
-│   └── editor/
-│       ├── Canvas.tsx          # React Three Fiber canvas, lights, model, post-processing
-│       ├── InspectorPanel.tsx  # Right sidebar (model / material / lighting sections)
-│       ├── BottomBar.tsx       # Upload, undo/redo, theme toggle, code toggle
-│       ├── CodeOutput.tsx      # Read-only CodeMirror panel for generated code
-│       ├── ColorPicker.tsx     # HSL popover with shade presets and hue slider
-│       └── OnboardingTour.tsx  # Animated first-visit walkthrough
-│
+│   ├── editor/
+│   │   ├── Canvas.tsx         React Three Fiber viewport
+│   │   ├── BottomBar.tsx      Upload, undo/redo, theme toggle
+│   │   ├── DropZone.tsx       File drop target
+│   │   ├── CodeOutput.tsx     R3F code preview panel
+│   │   ├── ColorPicker.tsx    HSL color picker popover
+│   │   ├── OnboardingTour.tsx Animated first-run tour
+│   │   └── inspector/         Inspector panel (split into sections)
+│   │       ├── index.tsx      Panel shell
+│   │       ├── ModelSection.tsx
+│   │       ├── MaterialSection.tsx
+│   │       ├── LightingSection.tsx
+│   │       └── shared/        Reusable form controls
+│   ├── ErrorBoundary.tsx      React error boundary
+│   └── ui/
+│       └── Spinner.tsx        Loading spinner
 └── lib/
-    ├── store.ts            # Central Zustand store with Zundo history
-    ├── modelLoader.ts      # GLTFLoader wrapper
-    ├── materialRegistry.ts # Mesh scanning and material override application
-    ├── codeGen.ts          # JSX code generation from scene state
-    ├── modelCache.ts       # IndexedDB read/write for uploaded models
-    ├── urlSync.ts          # URL param serialization and deserialization
-    └── useColor.ts         # Hex / RGB / HSL conversion utilities
+    ├── store.ts               Zustand store + Zundo temporal history
+    ├── constants.ts           Shared constants (model path, defaults)
+    ├── utils.ts               File validation helpers
+    ├── materialRegistry.ts    Three.js material snapshot + override
+    ├── modelLoader.ts         GLTF loading + disposal
+    ├── modelCache.ts          IndexedDB model cache
+    ├── codeGen.ts             R3F code generation
+    ├── urlSync.ts             URL ↔ store state sync
+    └── useColor.ts            Color format conversion utilities
 ```
 
----
+## Architecture notes
 
-## Architecture
+**State management** — A single Zustand store holds all editor state. The `temporal` middleware from Zundo wraps the material, lighting, transform, environment, camera, post-processing, and animation slices to provide undo/redo. UI-only state (theme, onboarding flags) is intentionally excluded from history.
 
-### State management
+**Material system** — When a model loads, `prepareSceneAndSnapshot` traverses the scene, records each material's properties into a `MaterialOverride` plain object, and snapshots them as store state. `applyMaterialOverrides` then writes the current store values back to the live Three.js material instances on every render cycle.
 
-All scene state lives in a single Zustand store (`src/lib/store.ts`). The Zundo middleware wraps it to capture snapshots on every change (200 ms debounce) and enable undo/redo. Only scene-relevant slices are tracked in history — materials, lights, transform, environment, camera, post-processing, and animation — so UI-only state changes don't pollute the history stack.
+**Model loading** — Models are parsed client-side via `GLTFLoader`. The parsed `ArrayBuffer` is cached in IndexedDB so the last-used model is restored on next visit without re-uploading.
 
-### Material system
+**SSR** — All 3D components use `next/dynamic` with `ssr: false` since Three.js requires a browser environment.
 
-When a model loads, `materialRegistry.ts` walks every mesh and creates a `MaterialOverride` record with captured defaults. The inspector panel reads and mutates these records; `applyMaterialOverrides()` is called on each render cycle to push the changes to the actual Three.js material objects. Materials are cloned to avoid mutating the GLTF cache.
+## Contributing
 
-### Model caching
-
-Uploaded models are stored as `ArrayBuffer` in IndexedDB (`modelCache.ts`). On mount, the canvas checks the cache first. If a record exists it restores the model without requiring a re-upload; if the IndexedDB is empty it falls back to the bundled default `public/3d_model.glb`.
-
-### Code generation
-
-`codeGen.ts` reads the current store snapshot and produces self-contained React Three Fiber JSX. The output is formatted by Prettier and written into the CodeMirror panel. Clicking the copy button writes it to the clipboard.
-
-### URL sharing
-
-`urlSync.ts` serializes non-default values into URL search params using nuqs. Only changed params appear in the URL, keeping links short. Supported params: `env`, `scale`, `fov`, `bloom`, `noise`.
-
-### Dynamic imports and SSR
-
-All Three.js components are loaded with `next/dynamic` and `ssr: false`. This prevents server-side rendering of WebGL code, reduces the initial JS bundle, and defers heavy 3D libraries until the editor is actually mounted.
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+Z` | Undo |
-| `Cmd+Shift+Z` | Redo |
-
----
-
-## Supported Model Formats
-
-- **GLB** — recommended (single binary file)
-- **GLTF** — supported (external resources resolved relative to the file)
-
-Place a default fallback model at `public/3d_model.glb` to display something before the user uploads their own.
-
----
-
-## Deployment
-
-The app is a standard Next.js application with a `basePath` of `/releases/3d-editor`. To deploy under a different path, update `basePath` in `next.config.ts` and adjust any absolute asset references accordingly.
-
-No server-side API routes are used — the app runs entirely in the browser.
+See [CONTRIBUTING.md](CONTRIBUTING.md).

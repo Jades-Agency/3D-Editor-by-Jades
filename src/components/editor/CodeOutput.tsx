@@ -31,7 +31,7 @@ const mutedHighlightStyle = HighlightStyle.define([
 const editorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    fontSize: "13px",
+    fontSize: "12px",
     background: "var(--panel-bg)",
     color: "var(--foreground)",
   },
@@ -60,9 +60,6 @@ const editorTheme = EditorView.theme({
   },
   ".cm-line": {
     padding: "0 4px",
-  },
-  ".cm-scroller": {
-    padding: "16px 0",
   },
 });
 
@@ -116,16 +113,16 @@ export default function CodeOutput({ onClose }: CodeOutputProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-panel-bg rounded-sm border border-panel-border">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-panel-border shrink-0">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+    <div className="h-full flex flex-col bg-panel-bg rounded-lg border border-panel-border">
+      <div className="flex items-center justify-between px-3 py-2 shrink-0">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
           Generated Code
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleCopy}
             className="p-1.5 rounded-sm transition-colors text-text-muted hover:bg-white/10"
-            title="Copy code"
+            title="Export code"
           >
             {copied ? (
               <Check className="w-4 h-4 text-primary" />

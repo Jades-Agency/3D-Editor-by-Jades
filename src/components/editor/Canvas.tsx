@@ -8,11 +8,13 @@ import {
 } from "@react-three/drei";
 import { EffectComposer, Bloom, Noise, ToneMapping } from "@react-three/postprocessing";
 import { Suspense, useEffect, useRef } from "react";
+
 import { useStore } from "@/lib/store";
 import {
   applyMaterialOverrides,
   prepareSceneAndSnapshot,
 } from "@/lib/materialRegistry";
+import { MODEL_PATH } from "@/lib/constants";
 import * as THREE from "three";
 
 const CANVAS_GL_CONFIG = Object.freeze({
@@ -172,6 +174,15 @@ export default function Canvas() {
   const environment = useStore((state) => state.environment);
   const localModel = useStore((state) => state.localModel);
   const animation = useStore((state) => state.animation);
+  const mountedRef = useRef(true);
+
+  // Dispose Three.js resources when the Canvas unmounts
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      import("@/lib/modelLoader").then(({ cleanup }) => cleanup());
+    };
+  }, []);
 
   useEffect(() => {
     const restore = async () => {
@@ -180,13 +191,13 @@ export default function Canvas() {
 
       // On first visit, skip auto-load — the onboarding tour handles it
       if (!localStorage.getItem("has-seen-onboarding")) return;
+      if (!mountedRef.current) return;
 
       const { loadFromCache, loadFromUrl } = await import("@/lib/modelLoader");
       const loaded = await loadFromCache();
 
-      if (!loaded) {
-        console.info("No cached model found. Loading default 3d_model.glb...");
-        await loadFromUrl("/releases/3d-editor/3d_model.glb");
+      if (mountedRef.current && !loaded) {
+        await loadFromUrl(MODEL_PATH);
       }
     };
     restore();
@@ -205,10 +216,9 @@ export default function Canvas() {
         const canvas = gl.domElement;
         const handleContextLost = (e: Event) => {
           e.preventDefault();
-          console.warn("WebGL Context Lost. Attempting to recover...");
         };
         const handleContextRestored = async () => {
-          console.info("WebGL Context Restored. Reloading model...");
+          if (!mountedRef.current) return;
           const { loadFromCache } = await import("@/lib/modelLoader");
           await loadFromCache();
         };
