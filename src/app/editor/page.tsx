@@ -33,11 +33,24 @@ export default function EditorPage() {
   const [showCode, setShowCode] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showDropBox, setShowDropBox] = useState(false);
 
   const theme = useStore((state) => state.theme);
   const showOnboardingDropzone = useStore((state) => state.showOnboardingDropzone);
   const onboardingDragOver = useStore((state) => state.onboardingDragOver);
   const onboardingLoadingOverlay = useStore((state) => state.onboardingLoadingOverlay);
+
+  useEffect(() => {
+    if (showOnboardingDropzone) {
+      // Wait for the overlay to fade in before starting the typewriter
+      const t = setTimeout(() => setShowWelcome(true), 600);
+      return () => clearTimeout(t);
+    } else {
+      setShowWelcome(false);
+      setShowDropBox(false);
+    }
+  }, [showOnboardingDropzone]);
 
   // Small delay so the dropzone starts fading before the inspector slides in
   const [inspectorReady, setInspectorReady] = useState(!showOnboardingDropzone);
@@ -140,35 +153,63 @@ export default function EditorPage() {
                 key="onboarding-dropzone"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1, transition: { duration: 0.5 } }}
-                exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.6, ease: "easeInOut" } }}
+                exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeInOut" } }}
                 className="fixed inset-0 z-99 flex items-center justify-center bg-background pointer-events-none"
               >
-                <div className="flex flex-col items-center gap-4">
-                  <p className="text-xl text-foreground ">
-                    Hey welcome to 3d editor
-                  </p>
-                  <div
-                    id="onboarding-dropzone-box"
-                    className={`size-70 rounded-2xl border border-dashed flex flex-col items-center transition-all duration-200 bg-white/10 ${
-                      onboardingDragOver ? "border-primary" : "border-panel-border"
-                    }`}
-                  >
-                    <div className="flex grow flex-col items-center justify-center gap-3">
-                      <Box
-                        className="size-12 mt-4"
-                        style={{ color: "var(--primary)" }}
-                        strokeWidth={1.25}
-                      />
-                      <p className="text-base text-foreground">
-                        Drop 3D model
-                      </p>
-                    </div>
-                    <p className="mb-4 text-sm text-muted">
-                      .glb or .gltf file
-                    </p>
-                  </div>
+                <div className="relative flex items-center justify-center w-80 h-80">
+                  <AnimatePresence onExitComplete={() => setShowDropBox(true)}>
+                    {showWelcome && (
+                      <motion.p
+                        className="text-xl text-foreground absolute"
+                        initial="hidden"
+                        animate="visible"
+                        exit={{ opacity: 0, y: -12, transition: { duration: 0.5, ease: "easeInOut" } }}
+                        onAnimationComplete={(def) => {
+                          if (def === "visible") setTimeout(() => setShowWelcome(false), 800);
+                        }}
+                        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+                      >
+                        {"Hey, welcome to 3D Editor".split("").map((char, i) => (
+                          <motion.span
+                            key={i}
+                            variants={{
+                              hidden: { opacity: 0 },
+                              visible: { opacity: 1, transition: { duration: 0.25 } },
+                            }}
+                          >
+                            {char === " " ? " " : char}
+                          </motion.span>
+                        ))}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                  <AnimatePresence>
+                    {showDropBox && (
+                      <motion.div
+                        id="onboarding-dropzone-box"
+                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }}
+                        className={`size-70 rounded-2xl border border-dashed flex flex-col items-center transition-colors duration-200 bg-white/5 ${
+                          onboardingDragOver ? "border-white/20" : "border-panel-border"
+                        }`}
+                      >
+                        <div className="flex grow flex-col items-center justify-center gap-3">
+                          <Box
+                            className="size-12 mt-4"
+                            style={{ color: "var(--primary)" }}
+                            strokeWidth={1.25}
+                          />
+                          <p className="text-base text-foreground">
+                            Drop 3D model
+                          </p>
+                        </div>
+                        <p className="mb-4 text-sm text-muted">
+                          .glb or .gltf file
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-
               </motion.div>
             )}
           </AnimatePresence>

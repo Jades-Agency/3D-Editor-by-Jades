@@ -79,16 +79,19 @@ export default function OnboardingTour() {
       localStorage.setItem("has-seen-onboarding", "true");
 
       // 0. Dropzone overlay is already visible (set before first paint via useLayoutEffect)
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 800));
 
       const dropzoneBox = await waitForElement("onboarding-dropzone-box");
       if (dropzoneBox) {
+        // Pause after box fully settles before cursor enters
+        await new Promise((r) => setTimeout(r, 1600));
+
         const rect = dropzoneBox.getBoundingClientRect();
         const targetX = rect.left + rect.width / 2;
         const targetY = rect.top + rect.height / 2;
 
         // Cursor rises up from below (as if carrying a file from the taskbar)
-        await mouseControls.set({
+        mouseControls.set({
           x: targetX,
           y: window.innerHeight + 40,
           opacity: 1,
@@ -99,20 +102,20 @@ export default function OnboardingTour() {
         await mouseControls.start({
           x: targetX,
           y: targetY,
-          transition: { duration: 0.7, ease: "easeInOut" },
+          transition: { duration: 1.0, ease: "easeInOut" },
         });
 
         // Hover — highlight the dropzone
         setOnboardingDragOver(true);
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 700));
 
         // Drop
         setIsClicking(true);
         await mouseControls.start({
           scale: 0.8,
-          transition: { duration: 0.15 },
+          transition: { duration: 0.2 },
         });
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 300));
 
         setOnboardingDragOver(false);
 
@@ -125,24 +128,24 @@ export default function OnboardingTour() {
 
         setShowOnboardingDropzone(false); // dropzone box fades out; loading overlay stays
         setIsClicking(false);
-        await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+        await mouseControls.start({ scale: 1, transition: { duration: 0.3 } });
 
         // Wait for inspector to fully slide in (150ms ready delay + 350ms animation + buffer)
-        await new Promise((r) => setTimeout(r, 550));
+        await new Promise((r) => setTimeout(r, 900));
 
         // Reveal the 3D — loading overlay fades out, bottom bar slides up simultaneously
         setOnboardingLoadingOverlay(false);
 
         // Wait until the WebGL view has synced this model (loader may set materials earlier)
         await waitForModelViewReady();
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 700));
       }
 
       // 1. Move to Material Section Toggle
       const materialToggle = await waitForElement("section-material");
       if (materialToggle) {
         // Wait for the inspector panel slide-in animation to finish before reading position
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 700));
 
         const rect = materialToggle.getBoundingClientRect();
         const x = rect.left + rect.width / 2;
@@ -151,13 +154,16 @@ export default function OnboardingTour() {
         await mouseControls.start({
           x,
           y,
-          transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+          transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
         });
+
+        // Pause before clicking so the user can see where the cursor landed
+        await new Promise((r) => setTimeout(r, 300));
 
         setIsClicking(true);
         await mouseControls.start({
           scale: 0.8,
-          transition: { duration: 0.15 },
+          transition: { duration: 0.2 },
         });
 
         // Read fresh state — closure values are stale since model loaded after tour started
@@ -167,11 +173,11 @@ export default function OnboardingTour() {
         }
 
         materialToggle.click();
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 200));
         setIsClicking(false);
-        await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+        await mouseControls.start({ scale: 1, transition: { duration: 0.3 } });
 
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 900));
       }
 
       // 2. Change Metalness
@@ -192,17 +198,20 @@ export default function OnboardingTour() {
           await mouseControls.start({
             x: startX,
             y,
-            transition: { duration: 0.4, ease: "easeInOut" },
+            transition: { duration: 0.7, ease: "easeInOut" },
           });
+
+          // Pause on slider before dragging
+          await new Promise((r) => setTimeout(r, 400));
 
           setIsClicking(true);
           await mouseControls.start({
             scale: 0.9,
-            transition: { duration: 0.1 },
+            transition: { duration: 0.15 },
           });
 
           await animate(startX, endX, {
-            duration: 0.7,
+            duration: 1.0,
             ease: "easeInOut",
             onUpdate: (latest) => {
               const progress = (latest - startX) / (endX - startX);
@@ -213,7 +222,7 @@ export default function OnboardingTour() {
           });
 
           await animate(endX, startX, {
-            duration: 0.7,
+            duration: 1.0,
             ease: "easeInOut",
             onUpdate: (latest) => {
               const progress = (latest - endX) / (startX - endX);
@@ -226,13 +235,13 @@ export default function OnboardingTour() {
           setIsClicking(false);
           await mouseControls.start({
             scale: 1,
-            transition: { duration: 0.2 },
+            transition: { duration: 0.3 },
           });
         }
       }
 
       // 3. Turn Model
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       const inspectorWidth = 320;
       const centerX = (window.innerWidth - inspectorWidth) / 2;
       const centerY = window.innerHeight / 2;
@@ -240,8 +249,11 @@ export default function OnboardingTour() {
       await mouseControls.start({
         x: centerX,
         y: centerY,
-        transition: { duration: 0.5, ease: "easeInOut" },
+        transition: { duration: 0.8, ease: "easeInOut" },
       });
+
+      // Brief pause before starting drag
+      await new Promise((resolve) => setTimeout(resolve, 400));
 
       // Read fresh animation/transform state
       const currentState = useStore.getState();
@@ -255,12 +267,12 @@ export default function OnboardingTour() {
       setAnimation({ autoRotate: false });
 
       setIsClicking(true);
-      await mouseControls.start({ scale: 0.9, transition: { duration: 0.1 } });
+      await mouseControls.start({ scale: 0.9, transition: { duration: 0.15 } });
 
       const dragDistance = 150;
 
       await animate(centerX, centerX - dragDistance, {
-        duration: 0.6,
+        duration: 0.9,
         ease: [0.4, 0, 0.2, 1],
         onUpdate: (latest) => {
           const p = (latest - centerX) / -dragDistance;
@@ -277,7 +289,7 @@ export default function OnboardingTour() {
       });
 
       await animate(centerX - dragDistance, centerX + dragDistance, {
-        duration: 0.9,
+        duration: 1.2,
         ease: "easeInOut",
         onUpdate: (latest) => {
           const p = (latest - (centerX - dragDistance)) / (dragDistance * 2);
@@ -294,7 +306,7 @@ export default function OnboardingTour() {
       });
 
       await animate(centerX + dragDistance, centerX, {
-        duration: 0.6,
+        duration: 0.9,
         ease: [0.4, 0, 0.2, 1],
         onUpdate: (latest) => {
           const p = (latest - (centerX + dragDistance)) / -dragDistance;
@@ -311,15 +323,15 @@ export default function OnboardingTour() {
       });
 
       setIsClicking(false);
-      await mouseControls.start({ scale: 1, transition: { duration: 0.2 } });
+      await mouseControls.start({ scale: 1, transition: { duration: 0.3 } });
       setAnimation({ autoRotate: initialAutoRotate });
 
       // Finish
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       await mouseControls.start({
         opacity: 0,
         scale: 2,
-        transition: { duration: 0.6, ease: "easeInOut" },
+        transition: { duration: 0.8, ease: "easeInOut" },
       });
       setIsVisible(false);
     } finally {
