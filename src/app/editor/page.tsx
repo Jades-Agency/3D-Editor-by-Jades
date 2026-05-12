@@ -143,7 +143,10 @@ export default function EditorPage() {
                 exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.6, ease: "easeInOut" } }}
                 className="fixed inset-0 z-99 flex items-center justify-center bg-background pointer-events-none"
               >
-                <div className="flex flex-col items-center gap-8">
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-xl text-foreground ">
+                    Hey welcome to 3d editor
+                  </p>
                   <div
                     id="onboarding-dropzone-box"
                     className={`size-70 rounded-2xl border border-dashed flex flex-col items-center transition-all duration-200 bg-white/10 ${
