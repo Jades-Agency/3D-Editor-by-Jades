@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   title: "3D Editor",
   description: "Real-time 3D model viewer and configurator",
   icons: {
-    icon: "/Jades_Stone.png",
-    shortcut: "/Jades_Stone.png",
-    apple: "/Jades_Stone.png",
+    icon: "/releases/3d-editor/Jades_Stone.png",
+    shortcut: "/releases/3d-editor/Jades_Stone.png",
+    apple: "/releases/3d-editor/Jades_Stone.png",
   },
 };
 

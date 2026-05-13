@@ -7,6 +7,52 @@ import type { StoreApi } from "zustand";
 
 import { EDITOR_THEME_STORAGE_KEY } from "./constants";
 
+const DEFAULT_LIGHTS: LightConfig[] = [
+  { type: "ambient", color: "#39de75", intensity: 1.2 },
+  {
+    type: "spot",
+    color: "#080e0a",
+    intensity: 15,
+    position: [-1.2, -4.7, -4.8],
+    angle: 0.8,
+    penumbra: 0.7,
+  },
+  { type: "point", color: "#3ade75", intensity: 70, position: [-5, -5, -5] },
+];
+
+const DEFAULT_TRANSFORM: Transform = {
+  position: [0, 0, 0],
+  rotation: [0, 0, 0],
+  scale: 32,
+};
+
+const DEFAULT_ENVIRONMENT: EnvironmentPreset = "forest";
+
+const DEFAULT_CAMERA: CameraConfig = {
+  position: [0, 0, 14],
+  fov: 45,
+};
+
+const DEFAULT_POST_PROCESSING: PostConfig = {
+  bloom: {
+    intensity: 0.25,
+    luminanceThreshold: 0,
+    luminanceSmoothing: 1,
+    radius: 0.48,
+  },
+  noise: {
+    opacity: 0,
+  },
+  toneMapping: {
+    exposure: 2,
+  },
+};
+
+const DEFAULT_ANIMATION: AnimationConfig = {
+  autoRotate: true,
+  autoRotateSpeed: 2,
+};
+
 export function getPersistedEditorTheme(): "dark" | "light" | null {
   if (typeof window === "undefined") return null;
   try {
@@ -170,6 +216,7 @@ export interface ModelStore {
   clearMaterialSnapshot: () => void;
   updateMaterial: (id: string, updates: Partial<MaterialOverride>) => void;
   resetMaterial: (id: string) => void;
+  resetAll: () => void;
   setLights: (lights: LightConfig[]) => void;
   setTransform: (transform: Partial<Transform>) => void;
   setEnvironment: (env: EnvironmentPreset) => void;
@@ -192,46 +239,12 @@ export const useStore = create<ModelStore>()(
       selectedMeshName: null,
       selectedMaterialId: null,
       materials: [],
-      lights: [
-        { type: "ambient", color: "#39de75", intensity: 1.2 },
-        {
-          type: "spot",
-          color: "#080e0a",
-          intensity: 15,
-          position: [-1.2, -4.7, -4.8],
-          angle: 0.8,
-          penumbra: 0.7,
-        },
-        { type: "point", color: "#3ade75", intensity: 70, position: [-5, -5, -5] },
-      ],
-      transform: {
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
-        scale: 32,
-      },
-      environment: "forest",
-      camera: {
-        position: [0, 0, 14],
-        fov: 45,
-      },
-      postProcessing: {
-        bloom: {
-          intensity: 0.25,
-          luminanceThreshold: 0,
-          luminanceSmoothing: 1,
-          radius: 0.48,
-        },
-        noise: {
-          opacity: 0,
-        },
-        toneMapping: {
-          exposure: 2,
-        },
-      },
-      animation: {
-        autoRotate: true,
-        autoRotateSpeed: 2,
-      },
+      lights: DEFAULT_LIGHTS,
+      transform: DEFAULT_TRANSFORM,
+      environment: DEFAULT_ENVIRONMENT,
+      camera: DEFAULT_CAMERA,
+      postProcessing: DEFAULT_POST_PROCESSING,
+      animation: DEFAULT_ANIMATION,
       theme: "dark",
       isOnboarding: false,
       showOnboardingDropzone: false,
@@ -292,6 +305,43 @@ export const useStore = create<ModelStore>()(
               wireframe: m.defaultWireframe,
             };
           }),
+        })),
+      resetAll: () =>
+        set((state) => ({
+          materials: state.materials.map((m) => ({
+            ...m,
+            color: m.defaultColor,
+            roughness: m.defaultRoughness,
+            metalness: m.defaultMetalness,
+            emissive: m.defaultEmissive,
+            emissiveIntensity: m.defaultEmissiveIntensity,
+            envMapIntensity: m.defaultEnvMapIntensity,
+            transmission: m.defaultTransmission,
+            ior: m.defaultIor,
+            reflectivity: m.defaultReflectivity,
+            thickness: m.defaultThickness,
+            attenuationColor: m.defaultAttenuationColor,
+            attenuationDistance: m.defaultAttenuationDistance,
+            clearcoat: m.defaultClearcoat,
+            clearcoatRoughness: m.defaultClearcoatRoughness,
+            sheen: m.defaultSheen,
+            sheenColor: m.defaultSheenColor,
+            sheenRoughness: m.defaultSheenRoughness,
+            dispersion: m.defaultDispersion,
+            iridescence: m.defaultIridescence,
+            iridescenceIOR: m.defaultIridescenceIOR,
+            anisotropy: m.defaultAnisotropy,
+            opacity: m.defaultOpacity,
+            transparent: m.defaultTransparent,
+            side: m.defaultSide,
+            wireframe: m.defaultWireframe,
+          })),
+          lights: DEFAULT_LIGHTS,
+          transform: DEFAULT_TRANSFORM,
+          environment: DEFAULT_ENVIRONMENT,
+          camera: DEFAULT_CAMERA,
+          postProcessing: DEFAULT_POST_PROCESSING,
+          animation: DEFAULT_ANIMATION,
         })),
       setLights: (lights) => set({ lights }),
       setTransform: (transform) =>

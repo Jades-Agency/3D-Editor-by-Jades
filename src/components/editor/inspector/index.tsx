@@ -11,18 +11,14 @@ import MaterialSection from "./MaterialSection";
 import LightingSection from "./LightingSection";
 
 export default function InspectorPanel() {
-  const selectedMaterialId = useStore((s) => s.selectedMaterialId);
-  const resetMaterial = useStore((s) => s.resetMaterial);
+  const hasModel = useStore((s) => s.localModel !== null);
+  const resetAll = useStore((s) => s.resetAll);
 
-  const [openSections, setOpenSections] = useState({
-    model: false,
-    material: false,
-    lighting: false,
-  });
+  const [openSection, setOpenSection] = useState<"model" | "material" | "lighting" | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const toggleSection = (key: keyof typeof openSections) =>
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleSection = (key: "model" | "material" | "lighting") =>
+    setOpenSection((prev) => (prev === key ? null : key));
 
   const handleCopyCode = async () => {
     const code = await generateFormattedCode();
@@ -37,7 +33,7 @@ export default function InspectorPanel() {
         <CollapsibleSection
           icon={<Play className="h-4 w-4" />}
           title="Model"
-          isOpen={openSections.model}
+          isOpen={openSection === "model"}
           onToggle={() => toggleSection("model")}
         >
           <ModelSection />
@@ -46,7 +42,7 @@ export default function InspectorPanel() {
         <CollapsibleSection
           icon={<Palette className="h-4 w-4" />}
           title="Material"
-          isOpen={openSections.material}
+          isOpen={openSection === "material"}
           onToggle={() => toggleSection("material")}
         >
           <MaterialSection />
@@ -55,7 +51,7 @@ export default function InspectorPanel() {
         <CollapsibleSection
           icon={<SunDim className="h-4 w-4" />}
           title="Lighting"
-          isOpen={openSections.lighting}
+          isOpen={openSection === "lighting"}
           onToggle={() => toggleSection("lighting")}
         >
           <LightingSection />
@@ -63,11 +59,11 @@ export default function InspectorPanel() {
       </div>
 
       <div className="pt-2 flex gap-2">
-        {selectedMaterialId && (
+        {hasModel && (
           <button
-            onClick={() => resetMaterial(selectedMaterialId)}
+            onClick={resetAll}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-dark-bg/10 dark:bg-white/10 text-dark-bg dark:text-white hover:bg-dark-bg/15 dark:hover:bg-white/15 transition-all active:scale-95 text-[14px]"
-            title="Reset Material"
+            title="Reset all to defaults"
           >
             <RotateCcw className="size-4" />
             Reset
