@@ -131,7 +131,7 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
               className="hidden"
             />
 
-            <div className="flex items-center gap-1">
+            <div className="relative flex items-center gap-1 group">
               <button
                 onClick={handleUploadClick}
                 disabled={isLoading}
@@ -144,6 +144,13 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
                 )}
                 Upload
               </button>
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <div className="bg-black/80 dark:bg-white/10 backdrop-blur-sm text-white text-[11px] rounded-md px-2.5 py-1.5 whitespace-nowrap border border-white/10">
+                  <span className="font-medium">GLB, GLTF</span>
+                  <span className="text-white/50 mx-1">·</span>
+                  <span className="text-white/70">Max 100 MB</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-1">
@@ -183,7 +190,7 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
       </motion.div>
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-100 text-[12px] dark:text-white/70 text-black/70 flex items-center gap-1.5 pointer-events-none">
-        OSS by <img src={theme === "dark" ? "jades.svg" : "light_jades.svg"} alt="Jades" width={48} height={13} />
+        OSS by <img src={theme === "dark" ? "/releases/3d-editor/jades.svg" : "/releases/3d-editor/light_jades.svg"} alt="Jades" width={48} height={13} />
       </div>
     </>
   );
