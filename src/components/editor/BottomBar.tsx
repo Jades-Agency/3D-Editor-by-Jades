@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { loadFile } from "@/lib/modelLoader";
 import { isValidModelFile } from "@/lib/utils";
 import { Upload, Loader2, Undo2, Redo2, Sun, Moon, Code } from "lucide-react";
@@ -190,7 +191,15 @@ export default function BottomBar({ showCode, onToggleCode }: BottomBarProps) {
       </motion.div>
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-100 text-[12px] dark:text-white/70 text-black/70 flex items-center gap-1.5 pointer-events-none">
-        OSS by <img src={theme === "dark" ? "/releases/3d-editor/jades.svg" : "/releases/3d-editor/light_jades.svg"} alt="Jades" width={48} height={13} />
+        OSS by{" "}
+        <Link
+          href="https://jades.agency"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto"
+        >
+          <img src={theme === "dark" ? "/releases/3d-editor/jades.svg" : "/releases/3d-editor/light_jades.svg"} alt="Jades" width={48} height={13} />
+        </Link>
       </div>
     </>
   );
