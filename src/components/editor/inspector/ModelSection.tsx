@@ -66,6 +66,40 @@ export default function ModelSection() {
         />
       </Subsection>
 
+      <Subsection title="Hover Spin">
+        <ToggleRow
+          label="Enable"
+          checked={animation.hoverSpin}
+          onChange={(v) => setAnimation({ hoverSpin: v })}
+        />
+        <SliderRow
+          label="Speed"
+          value={animation.hoverSpinSpeed}
+          min={0.1}
+          max={5}
+          step={0.1}
+          onChange={(v) => setAnimation({ hoverSpinSpeed: v })}
+          format={(v) => v.toFixed(1)}
+        />
+      </Subsection>
+
+      <Subsection title="Hover Scale">
+        <ToggleRow
+          label="Enable"
+          checked={animation.hoverScale}
+          onChange={(v) => setAnimation({ hoverScale: v })}
+        />
+        <SliderRow
+          label="Amount"
+          value={animation.hoverScaleAmount}
+          min={1.0}
+          max={2.0}
+          step={0.05}
+          onChange={(v) => setAnimation({ hoverScaleAmount: v })}
+          format={(v) => `${v.toFixed(2)}x`}
+        />
+      </Subsection>
+
       <Subsection title="Camera">
         <SliderRow
           label="FOV"
