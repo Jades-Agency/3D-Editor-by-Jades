@@ -36,7 +36,13 @@ function Model() {
   );
   const setSelectedMeshName = useStore((state) => state.setSelectedMeshName);
   const setModelViewReady = useStore((state) => state.setModelViewReady);
+  const animation = useStore((state) => state.animation);
   const groupRef = useRef<THREE.Group>(null);
+  const hoverBurstRef = useRef(0);
+  const scaleMultiplierRef = useRef(1);
+  const isHoveredRef = useRef(false);
+
+  const HOVER_SPIN_RADIANS = Math.PI * 2;
 
   // Initialize materials once per model
   useEffect(() => {
@@ -75,6 +81,35 @@ function Model() {
     applyMaterialOverrides(localModel, materials);
   }, [localModel, materials]);
 
+  useEffect(() => {
+    if (!animation.hoverScale) {
+      scaleMultiplierRef.current = 1;
+    }
+  }, [animation.hoverScale]);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    if (animation.hoverSpin) {
+      const burstTarget = isHoveredRef.current ? HOVER_SPIN_RADIANS : 0;
+      const smoothing = animation.hoverSpinSpeed * 4;
+      const t = 1 - Math.exp(-smoothing * delta);
+      const prev = hoverBurstRef.current;
+      hoverBurstRef.current += (burstTarget - hoverBurstRef.current) * t;
+      groupRef.current.rotateY(hoverBurstRef.current - prev);
+    }
+
+    if (animation.hoverScale) {
+      const scaleTarget = isHoveredRef.current ? animation.hoverScaleAmount : 1;
+      const t = 1 - Math.exp(-8 * delta);
+      scaleMultiplierRef.current += (scaleTarget - scaleMultiplierRef.current) * t;
+      groupRef.current.scale.setScalar(transform.scale * scaleMultiplierRef.current);
+    }
+  });
+
+  const handlePointerEnter = () => { isHoveredRef.current = true; };
+  const handlePointerLeave = () => { isHoveredRef.current = false; };
+
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
 
@@ -96,7 +131,12 @@ function Model() {
   }
 
   return (
-    <group ref={groupRef} onClick={handleClick}>
+    <group
+      ref={groupRef}
+      onClick={handleClick}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
       <primitive object={localModel} />
     </group>
   );

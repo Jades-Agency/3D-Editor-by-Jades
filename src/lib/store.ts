@@ -51,6 +51,10 @@ const DEFAULT_POST_PROCESSING: PostConfig = {
 const DEFAULT_ANIMATION: AnimationConfig = {
   autoRotate: true,
   autoRotateSpeed: 2,
+  hoverSpin: false,
+  hoverSpinSpeed: 1.5,
+  hoverScale: false,
+  hoverScaleAmount: 1.2,
 };
 
 export function getPersistedEditorTheme(): "dark" | "light" | null {
@@ -188,6 +192,10 @@ export interface PostConfig {
 export interface AnimationConfig {
   autoRotate: boolean;
   autoRotateSpeed: number;
+  hoverSpin: boolean;
+  hoverSpinSpeed: number;
+  hoverScale: boolean;
+  hoverScaleAmount: number;
 }
 
 export interface ModelStore {

@@ -36,6 +36,7 @@ const generateCode = (): string => {
   const { position, rotation, scale } = store.transform;
   const { position: camPos, fov } = store.camera;
   const { bloom, noise, toneMapping } = store.postProcessing;
+  const { autoRotate, autoRotateSpeed, hoverSpin, hoverSpinSpeed, hoverScale, hoverScaleAmount } = store.animation;
   const env = store.environment;
   const hasModel = store.localModel !== null;
 
@@ -51,17 +52,54 @@ const generateCode = (): string => {
     ? `\nimport { useGLTF } from '@react-three/drei';`
     : "";
 
+  const hasHover = hoverSpin || hoverScale;
+  const hoverImports = hasHover ? `\nimport { useRef } from 'react';` : "";
+
+  const spinRefs = hoverSpin ? `\n  const hoverBurstRef = useRef(0);` : "";
+  const scaleRefs = hoverScale ? `\n  const scaleMultiplierRef = useRef(1);` : "";
+  const isHoveredRefDecl = hasHover ? `\n  const isHoveredRef = useRef(false);` : "";
+
+  const spinFrameBody = hoverSpin ? `
+    const burstTarget = isHoveredRef.current ? Math.PI * 2 : 0;
+    const smoothing = ${(hoverSpinSpeed * 4).toFixed(2)};
+    const spinT = 1 - Math.exp(-smoothing * delta);
+    const prev = hoverBurstRef.current;
+    hoverBurstRef.current += (burstTarget - hoverBurstRef.current) * spinT;
+    groupRef.current.rotateY(hoverBurstRef.current - prev);` : "";
+
+  const scaleFrameBody = hoverScale ? `
+    const scaleTarget = isHoveredRef.current ? ${hoverScaleAmount.toFixed(2)} : 1;
+    const scaleT = 1 - Math.exp(-8 * delta);
+    scaleMultiplierRef.current += (scaleTarget - scaleMultiplierRef.current) * scaleT;
+    groupRef.current.scale.setScalar(scaleMultiplierRef.current);` : "";
+
+  const useFrameBlock = hasHover ? `
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;${spinFrameBody}${scaleFrameBody}
+  });` : "";
+
+  const groupRef = hasHover ? `\n  const groupRef = useRef(null);` : "";
+  const pointerEvents = hasHover ? `
+      ref={groupRef}
+      onPointerEnter={() => { isHoveredRef.current = true; }}
+      onPointerLeave={() => { isHoveredRef.current = false; }}` : "";
+
   const modelComponent = hasModel
     ? `
 function Model() {
-  const { scene } = useGLTF('${MODEL_PATH}');
-  return <primitive object={scene} />;
+  const { scene } = useGLTF('${MODEL_PATH}');${groupRef}${spinRefs}${scaleRefs}${isHoveredRefDecl}${useFrameBlock}
+
+  return (
+    <group${pointerEvents}>
+      <primitive object={scene} />
+    </group>
+  );
 }`
     : "";
 
-  return `import { Canvas } from '@react-three/fiber';
+  return `import { Canvas${hasHover ? ", useFrame" : ""} } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, PerspectiveCamera } from '@react-three/drei';
-import { EffectComposer, Bloom, Noise, ToneMapping } from '@react-three/postprocessing';${modelImport}
+import { EffectComposer, Bloom, Noise, ToneMapping } from '@react-three/postprocessing';${modelImport}${hoverImports}
 ${modelInstructions}
 export default function ModelViewer() {
 ${modelComponent}
@@ -89,7 +127,7 @@ ${modelComponent}
         far={4.5}
       />
       
-      <OrbitControls enablePan enableZoom makeDefault />
+      <OrbitControls enablePan enableZoom makeDefault${autoRotate ? ` autoRotate autoRotateSpeed={${autoRotateSpeed}}` : ""} />
       
       {/* Post Processing */}
       <EffectComposer enableNormalPass={false}>
